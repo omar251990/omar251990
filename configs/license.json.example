@@ -1,0 +1,18 @@
+{
+  "customer_name": "Example_Telecom_Operator",
+  "expiry_date": "2030-12-31",
+  "licensed_mac": "00:11:22:33:44:55",
+  "enable_2g": true,
+  "enable_3g": true,
+  "enable_4g": true,
+  "enable_5g": true,
+  "enable_map": true,
+  "enable_cap": true,
+  "enable_inap": true,
+  "enable_diameter": true,
+  "enable_http": true,
+  "enable_gtp": true,
+  "max_subscribers": 5000000,
+  "max_tps": 5000,
+  "signature": "GENERATE_WITH_tools/generate_license"
+}

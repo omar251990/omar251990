@@ -1,0 +1,13 @@
+# Ericsson Vendor-Specific Cause Codes
+
+causes:
+  10001: "Ericsson: Subscriber not provisioned"
+  10002: "Ericsson: APN restriction violation"
+  10003: "Ericsson: QoS negotiation failed"
+  10004: "Ericsson: Bearer establishment timeout"
+  10005: "Ericsson: Policy enforcement failure"
+  10006: "Ericsson: Charging system unavailable"
+  10007: "Ericsson: Roaming partner unreachable"
+  10008: "Ericsson: VoLTE service not activated"
+  10009: "Ericsson: Network congestion"
+  10010: "Ericsson: Internal system error"
