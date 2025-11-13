@@ -52,6 +52,83 @@ Open your browser to: `http://localhost:8080`
 
 **Default credentials**: admin / admin (change on first login)
 
+## 🖥️ Web Interface
+
+Protei_Monitoring v2.0 features a **modern, professional web interface** for complete system management:
+
+### Dashboard Features
+- **Real-time KPI Cards**: Total sessions, success rates, active alarms, TPS metrics
+- **Interactive Charts**: TPS trends, protocol distribution, procedure success rates
+- **Live Updates**: WebSocket-based real-time data streaming (5-second refresh)
+- **Resource Monitoring**: CPU, memory, disk, network usage with historical graphs
+- **Session Explorer**: Browse, search, and filter all monitored sessions
+- **Alarm Management**: View, acknowledge, and manage alarms by severity
+
+### Configuration Management (No CLI Required!)
+All system parameters can be configured directly from the web interface:
+
+- **Protocol Configuration**: Enable/disable protocols, tune parameters per protocol
+  - MAP, CAP, INAP, Diameter, GTP, PFCP, HTTP, NGAP, S1AP, NAS
+  - Version selection, feature flags, timeout values
+
+- **Network Configuration**: Manage multiple networks from single GUI
+  - Enable/disable per network
+  - Configure MCC/MNC, operator names
+  - Set network-specific thresholds
+
+- **Service Management**: Start, stop, restart application from web
+  - Graceful shutdown with session draining
+  - Configuration validation before restart
+  - Real-time service status monitoring
+
+- **Capture Configuration**: Select dump file paths, watch intervals
+  - Configure PCAP ingestion directories
+  - Set file rotation policies
+  - Monitor ingestion queue status
+
+- **CDR Configuration**: Configure CDR output locations per network
+  - Separate CDR files by network/protocol
+  - Custom field selection
+  - Rotation and compression settings
+
+- **Log Configuration**: Manage all log types from web
+  - System logs, warning/alarm logs, application logs
+  - Security and audit logs
+  - Log levels, locations, rotation policies
+  - Real-time log viewer with search
+
+### User & Access Management
+- **Authentication**: JWT token-based with LDAP/AD integration
+- **User Management**: Create, edit, delete users from web interface
+- **Role-Based Access Control (RBAC)**: 4 predefined roles
+  - **Admin**: Full system access, configuration management
+  - **Engineer**: View sessions, KPIs, download PCAPs, create filters
+  - **NOC Viewer**: View-only access to dashboards and KPIs
+  - **Security Auditor**: Audit logs and alarm access
+- **Audit Logging**: Complete trail of all user actions (who, what, when)
+
+### Advanced Features
+- **Advanced Filtering**: Filter by any parameter
+  - TID, IMSI, MSISDN, IP, APN, MCC/MNC
+  - Date/time ranges
+  - Success/failure status
+  - Traffic type (international/local, roaming/home)
+
+- **Search Functionality**: Fast search across all sessions
+  - Full-text search support
+  - Saved search templates
+  - Export search results
+
+- **VIP Subscriber Management**:
+  - Define VIP subscriber list (IMSI/MSISDN)
+  - Special alarms and notifications for VIPs
+  - Priority session tracking
+
+- **License Management**: View license status and features from web
+  - Expiry countdown
+  - Enabled protocols and networks
+  - Capacity limits (subscribers, TPS)
+
 ## ✨ Key Features
 
 ### Protocol Support
@@ -325,6 +402,42 @@ make run
 - **Failed login monitoring**
 - **License validation logs**
 
+### Source Code Protection
+Protei_Monitoring includes built-in source code encryption for intellectual property protection:
+
+**Encrypt Source Code**:
+```bash
+# Encrypt all source files with AES-256-CBC
+./scripts/encrypt_source.sh [encryption_key]
+
+# Creates encrypted archive: protei_monitoring_encrypted_YYYYMMDD_HHMMSS.tar.gz
+# Generates SHA256 checksum for integrity verification
+```
+
+**Decrypt Source Code**:
+```bash
+# Decrypt encrypted archive
+./scripts/decrypt_source.sh [encryption_key] [archive_file]
+
+# Verifies checksum before decryption
+# Restores all source files to original locations
+# Automatically restores executable permissions
+```
+
+**Features**:
+- **AES-256-CBC encryption** with PBKDF2 key derivation
+- **Automatic file discovery**: Encrypts .go, .yaml, .json, .sh, .html, .css, .js files
+- **Archive creation**: Compressed tar.gz with timestamp
+- **Integrity verification**: SHA256 checksums for tamper detection
+- **Secure key storage**: Encryption key saved in protected file (.encryption_key)
+- **Smart exclusions**: Skips vendor/, bin/, .git/ directories
+
+**Security Notes**:
+- Keep the .encryption_key file secure and backed up
+- Store encrypted archives in secure location
+- Use strong encryption keys (recommended: 32+ characters)
+- Verify checksums before deploying decrypted code
+
 ## 🌟 Advantages
 
 ✅ **Self-contained**: Single binary, no external dependencies
@@ -382,12 +495,57 @@ make run
   - Runtime loading and caching
   - Sample dictionaries included
 
+- **Modern Web UI**:
+  - Professional React-style dashboard with Material Design
+  - Real-time updates via WebSocket (5-second refresh)
+  - Interactive charts using Chart.js (TPS, protocols, success rates)
+  - Responsive design for desktop, tablet, and mobile
+  - Custom CSS framework with professional styling
+  - Loading states, notifications, and smooth animations
+
+- **Web-Based Configuration Management**:
+  - **Complete GUI control** - No CLI required for any configuration
+  - Protocol enable/disable and parameter tuning per protocol
+  - Network management with MCC/MNC configuration
+  - Service control (start/stop/restart) from web interface
+  - PCAP capture path configuration
+  - CDR output location management per network
+  - Log configuration (levels, locations, rotation)
+  - Real-time configuration validation
+
+- **System Monitoring**:
+  - Real-time CPU, memory, disk, network usage graphs
+  - Process statistics (goroutines, heap, GC metrics)
+  - Historical resource trending
+  - Automatic monitoring every 2 seconds
+  - WebSocket broadcast of resource updates
+
+- **Source Code Protection**:
+  - AES-256-CBC encryption scripts for source code
+  - Automated encryption/decryption tools
+  - SHA256 integrity verification
+  - Secure key management
+
 ### API Enhancements
 - `/api/auth/login` - JWT token generation
 - `/api/auth/logout` - Session invalidation
+- `/api/kpi` - Real-time KPI metrics
+- `/api/sessions` - Session listing with pagination
+- `/api/sessions/:tid` - Session details
+- `/api/sessions/:tid/pcap` - Download PCAP for specific session
+- `/api/alarms` - Alarm listing and filtering
+- `/api/alarms/:id` - Alarm acknowledgment
+- `/api/resources` - System resource monitoring
 - `/api/license` - License information and status
 - `/api/topology` - Network element topology
-- `/api/sessions/:tid/pcap` - Download PCAP for specific session
+- `/api/configuration` - Get/update system configuration
+- `/api/configuration/protocols/:name` - Protocol-specific configuration
+- `/api/configuration/networks/:name` - Network-specific configuration
+- `/api/system/restart` - Restart application service
+- `/api/users` - User management (create/list/update/delete)
+- `/api/logs` - Log retrieval with filtering
+- `/api/search` - Advanced session search
+- `/ws` - WebSocket endpoint for real-time updates
 
 ### Operational Improvements
 - License validation on startup with detailed error messages
@@ -400,11 +558,19 @@ make run
 
 ### Completed in v2.0 ✅
 - [x] PCAP file capture and processing
-- [x] Database integration (PostgreSQL)
+- [x] Database integration (PostgreSQL with Liquibase)
 - [x] Authentication and authorization (JWT/RBAC)
-- [x] License management system
-- [x] Vendor dictionary support
+- [x] License management system with MAC binding
+- [x] Vendor dictionary support (Ericsson, Huawei, ZTE, Nokia)
 - [x] CAP/INAP/PFCP/NGAP/S1AP/NAS protocol decoders
+- [x] Modern professional web UI with real-time updates
+- [x] Web-based configuration management (no CLI required)
+- [x] System resource monitoring (CPU/RAM/disk/network)
+- [x] Service management from web (start/stop/restart)
+- [x] Source code encryption/decryption scripts
+- [x] Interactive dashboards with Chart.js
+- [x] WebSocket real-time data streaming
+- [x] Comprehensive REST API (20+ endpoints)
 
 ### Planned for Future Releases
 - [ ] ML-based anomaly detection
