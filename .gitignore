@@ -4,7 +4,8 @@ build/
 *.dll
 *.so
 *.dylib
-protei-monitoring
+/protei-monitoring
+bin/protei-monitoring
 
 # Test and coverage files
 *.test
