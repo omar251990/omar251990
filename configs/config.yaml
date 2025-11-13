@@ -1,0 +1,268 @@
+# Protei_Monitoring Configuration File
+# Telecom Multi-Protocol Monitoring Platform
+
+application:
+  name: Protei_Monitoring
+  version: 1.0.0
+  deployment_path: /usr/protei/Protei_Monitoring
+
+server:
+  host: 0.0.0.0
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  max_header_bytes: 1048576
+
+ingestion:
+  # Input sources
+  sources:
+    - type: pcap_file
+      path: /usr/protei/Protei_Monitoring/ingest
+      watch: true
+      recursive: true
+      pattern: "*.pcap"
+    - type: pcap_live
+      enabled: false
+      interface: eth0
+      snaplen: 65535
+      promisc: true
+
+  # Processing settings
+  buffer_size: 100000
+  workers: 8
+  batch_size: 1000
+
+protocols:
+  # Enable/disable specific protocol decoders
+  map:
+    enabled: true
+    version: [2, 3]
+  cap:
+    enabled: true
+    version: [1, 2, 3, 4]
+  inap:
+    enabled: true
+    version: [1, 2, 3]
+  diameter:
+    enabled: true
+    applications:
+      - S6a
+      - S6d
+      - Gx
+      - Gy
+      - Gz
+      - S8
+      - S9
+    vendor_support:
+      - ericsson
+      - huawei
+      - zte
+      - nokia
+  gtp:
+    enabled: true
+    versions: [1, 2]  # GTPv1-C, GTPv2-C
+  pfcp:
+    enabled: true
+  http:
+    enabled: true
+    versions: [1.1, 2.0]
+  ngap:
+    enabled: true
+  s1ap:
+    enabled: true
+  nas:
+    enabled: true
+    generations: [4G, 5G]
+
+correlation:
+  # Transaction ID generation and correlation
+  tid_cache_size: 1000000
+  tid_ttl: 3600  # seconds
+  correlation_fields:
+    - imsi
+    - msisdn
+    - teid
+    - seid
+    - supi
+    - apn
+    - dnn
+    - plmn
+    - cell_id
+    - timestamp
+
+  # Session correlation timeout
+  session_timeout: 300  # seconds
+
+  # Enable end-to-end flow tracking
+  e2e_tracking: true
+
+analytics:
+  # KPI calculation settings
+  kpis:
+    enabled: true
+    calculation_interval: 60  # seconds
+
+    # Procedure KPIs
+    procedures:
+      - attach_4g
+      - registration_5g
+      - pdp_activation
+      - pdu_session_establishment
+      - handover
+      - paging
+      - location_update
+      - authentication
+      - service_request
+
+    # Metrics to track
+    metrics:
+      - success_rate
+      - failure_rate
+      - latency_avg
+      - latency_p95
+      - latency_p99
+      - cause_distribution
+      - message_count
+
+  # Roaming analytics
+  roaming:
+    enabled: true
+    track_inbound: true
+    track_outbound: true
+    heatmap_resolution: cell  # cell, tac, lac, region
+
+  # Failure analysis
+  failure_analysis:
+    enabled: true
+    threshold_failure_rate: 5.0  # percentage
+    threshold_latency_ms: 1000
+
+visualization:
+  # Ladder diagram generation
+  ladder_diagrams:
+    enabled: true
+    format: svg
+    max_messages_per_diagram: 100
+    output_path: /usr/protei/Protei_Monitoring/out/diagrams
+    auto_label_nodes: true
+
+  # Heatmaps
+  heatmaps:
+    enabled: true
+    format: geojson
+    output_path: /usr/protei/Protei_Monitoring/out/heatmaps
+
+  # Dashboard
+  dashboard:
+    enabled: true
+    refresh_interval: 5  # seconds
+    real_time: true
+
+storage:
+  # Logging
+  logs:
+    path: /usr/protei/Protei_Monitoring/logs
+    format: json
+    level: info  # debug, info, warn, error
+    max_size_mb: 100
+    max_backups: 10
+    max_age_days: 30
+    compress: true
+
+  # Events (decoded messages)
+  events:
+    enabled: true
+    path: /usr/protei/Protei_Monitoring/out/events
+    format: jsonl
+    rotation: daily
+    retention_days: 7
+
+  # CDR (Call Detail Records)
+  cdr:
+    enabled: true
+    path: /usr/protei/Protei_Monitoring/out/cdr
+    format: csv
+    fields:
+      - tid
+      - imsi
+      - msisdn
+      - procedure
+      - start_time
+      - end_time
+      - duration_ms
+      - result
+      - cause
+      - plmn
+      - cell_id
+      - apn
+      - vendor
+    rotation: hourly
+    retention_days: 30
+
+recommendations:
+  # Rule-based recommendations
+  enabled: true
+  rules_file: /usr/protei/Protei_Monitoring/configs/rules.yaml
+
+  # AI/ML anomaly detection (future)
+  ml_enabled: false
+  ml_model_path: /usr/protei/Protei_Monitoring/models
+
+security:
+  # Authentication
+  auth_enabled: false
+  auth_type: basic  # basic, oauth2, jwt
+
+  # RBAC
+  rbac_enabled: false
+
+  # Local-only mode
+  local_only: true
+  allowed_ips: []
+
+health:
+  # Health check and watchdog
+  enabled: true
+  check_interval: 30  # seconds
+  endpoints:
+    - /health
+    - /metrics
+    - /ready
+
+  # Watchdog
+  watchdog:
+    enabled: true
+    timeout: 120  # seconds
+    restart_on_failure: true
+
+vendors:
+  # Vendor dictionary paths
+  dictionaries:
+    ericsson: /usr/protei/Protei_Monitoring/dictionaries/ericsson
+    huawei: /usr/protei/Protei_Monitoring/dictionaries/huawei
+    zte: /usr/protei/Protei_Monitoring/dictionaries/zte
+    nokia: /usr/protei/Protei_Monitoring/dictionaries/nokia
+
+  # Auto-detect vendor from equipment IDs
+  auto_detect: true
+
+performance:
+  # Performance tuning
+  max_goroutines: 10000
+  gc_percent: 100
+  numa_aware: true
+
+  # Memory limits
+  max_memory_mb: 8192
+
+  # Message processing
+  async_processing: true
+  pipeline_depth: 10
+
+features:
+  # Feature flags
+  hot_reload: true
+  graceful_restart: true
+  auto_cleanup: true
+  metrics_export: true
+  prometheus_compatible: true
