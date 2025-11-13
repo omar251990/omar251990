@@ -1,0 +1,51 @@
+# Huawei Vendor-Specific Diameter AVPs
+# Vendor ID: 2011
+
+avps:
+  - code: 20001
+    vendor_id: 2011
+    name: "Huawei-Charging-Info"
+    type: "OctetString"
+    description: "Huawei charging information"
+
+  - code: 20002
+    vendor_id: 2011
+    name: "Huawei-Service-Type"
+    type: "Unsigned32"
+    description: "Service type identifier"
+
+  - code: 20003
+    vendor_id: 2011
+    name: "Huawei-QoS-Class"
+    type: "Unsigned32"
+    description: "Huawei QoS class identifier"
+
+  - code: 20004
+    vendor_id: 2011
+    name: "Huawei-Bearer-Control"
+    type: "Grouped"
+    description: "Bearer control information"
+
+  - code: 20005
+    vendor_id: 2011
+    name: "Huawei-Policy-Rule"
+    type: "Grouped"
+    description: "Policy rule definition"
+
+  - code: 20010
+    vendor_id: 2011
+    name: "Huawei-User-Location"
+    type: "OctetString"
+    description: "Enhanced user location info"
+
+  - code: 20015
+    vendor_id: 2011
+    name: "Huawei-Roaming-Zone"
+    type: "UTF8String"
+    description: "Roaming zone identifier"
+
+  - code: 20020
+    vendor_id: 2011
+    name: "Huawei-VoLTE-Profile"
+    type: "Grouped"
+    description: "VoLTE profile configuration"

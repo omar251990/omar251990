@@ -1,0 +1,357 @@
+# Protei_Monitoring - Recommendation Rules
+# Rule-based failure diagnosis and recommendations
+
+rules:
+  # Attach Failures
+  - id: R001
+    name: Attach Failure - Authentication
+    category: authentication
+    condition:
+      procedure: attach_4g
+      result: failure
+      cause_group: authentication
+    severity: high
+    recommendation: |
+      Authentication failure detected during LTE attach procedure.
+      Possible causes:
+      1. Invalid USIM credentials in HSS/UDM
+      2. KASME derivation mismatch
+      3. Network authentication vector issue
+
+      Recommended actions:
+      - Verify subscriber profile in HSS/HLR
+      - Check authentication vectors
+      - Review security algorithm compatibility
+      - Verify operator key (OP/OPc) configuration
+
+  - id: R002
+    name: Attach Failure - Network Rejection
+    category: network
+    condition:
+      procedure: attach_4g
+      result: failure
+      cause_codes: [7, 8, 11, 12, 13, 15]
+    severity: medium
+    recommendation: |
+      Network rejected attach request.
+      Common causes based on EMM cause:
+      - Cause 7: EPS services not allowed
+      - Cause 8: EPS and non-EPS services not allowed
+      - Cause 11: PLMN not allowed
+      - Cause 12: Tracking area not allowed
+      - Cause 13: Roaming not allowed in this TA
+      - Cause 15: No suitable cells in tracking area
+
+      Recommended actions:
+      - Verify roaming agreements if inbound roamer
+      - Check PLMN/TAC configuration in MME/AMF
+      - Review subscriber roaming permissions
+      - Validate TA list configuration
+
+  - id: R003
+    name: PDN/PDU Session Failure - QoS
+    category: qos
+    condition:
+      procedure: [pdu_session_establishment, pdp_activation]
+      result: failure
+      cause_group: qos
+    severity: medium
+    recommendation: |
+      QoS-related session establishment failure.
+
+      Recommended actions:
+      - Review 5QI/QCI mapping in policy server
+      - Check ARP (Allocation Retention Priority)
+      - Verify UPF/PGW capacity
+      - Review Gx/N7 policy rules
+      - Validate subscriber QoS profile
+
+  # Registration Failures (5G)
+  - id: R004
+    name: 5G Registration Failure - AMF Selection
+    category: configuration
+    condition:
+      procedure: registration_5g
+      result: failure
+      cause_group: amf_selection
+    severity: high
+    recommendation: |
+      AMF selection or redirection issue.
+
+      Recommended actions:
+      - Verify NSSAI (Network Slice Selection Assistance Information)
+      - Check AMF set/region configuration
+      - Review SCP routing (if applicable)
+      - Validate AMF capacity
+      - Check N1/N2 interface connectivity
+
+  # Handover Failures
+  - id: R005
+    name: Handover Failure - X2/Xn Interface
+    category: mobility
+    condition:
+      procedure: handover
+      result: failure
+      cause_group: [x2_interface, xn_interface]
+    severity: high
+    recommendation: |
+      Inter-eNodeB/gNodeB handover failure on X2/Xn interface.
+
+      Recommended actions:
+      - Check X2/Xn link status between source and target
+      - Verify neighbor relations (ANR configuration)
+      - Review handover parameters (HO margin, TTT)
+      - Check target cell capacity
+      - Validate SCTP associations
+      - Review measurement reports (RSRP/RSRQ thresholds)
+
+  - id: R006
+    name: Handover Failure - S1/N2 Interface
+    category: mobility
+    condition:
+      procedure: handover
+      result: failure
+      interface: [s1, n2]
+    severity: high
+    recommendation: |
+      S1/N2-based handover failure (inter-MME/AMF).
+
+      Recommended actions:
+      - Verify S1/N2 interface connectivity
+      - Check MME/AMF pool configuration
+      - Review TAU/RAU procedures
+      - Validate context transfer between MME/AMF
+      - Check GTP-C tunnel establishment
+
+  # Diameter Failures
+  - id: R007
+    name: Diameter Timeout - HSS/UDM
+    category: signaling
+    condition:
+      protocol: diameter
+      result: timeout
+      peer_type: [hss, udm]
+    severity: critical
+    recommendation: |
+      Diameter request timeout to HSS/UDM.
+
+      Recommended actions:
+      - Check HSS/UDM availability and load
+      - Verify DRA/DEA routing rules
+      - Review network connectivity (ping, traceroute)
+      - Check Diameter peer connection status
+      - Validate Watchdog (DWR/DWA) exchanges
+      - Review HSS/UDM logs for performance issues
+
+  - id: R008
+    name: Diameter Error - User Unknown
+    category: provisioning
+    condition:
+      protocol: diameter
+      result: failure
+      result_code: 5001  # DIAMETER_ERROR_USER_UNKNOWN
+    severity: medium
+    recommendation: |
+      Subscriber not found in HSS/UDM.
+
+      Recommended actions:
+      - Verify IMSI provisioning in HSS/UDM
+      - Check subscriber activation status
+      - Validate IMSI format (MCC-MNC-MSIN)
+      - Review recent subscriber migrations
+      - Check HSS/UDM synchronization if multi-site
+
+  # GTP Failures
+  - id: R009
+    name: GTP-C Tunnel Failure
+    category: bearer
+    condition:
+      protocol: gtpc
+      result: failure
+      cause_group: tunnel
+    severity: high
+    recommendation: |
+      GTP-C tunnel establishment or modification failure.
+
+      Recommended actions:
+      - Verify SGW/PGW/UPF IP reachability
+      - Check TEID allocation
+      - Review S5/S8 interface configuration
+      - Validate GTP-U plane connectivity
+      - Check SGW/PGW capacity
+
+  # Roaming Issues
+  - id: R010
+    name: Roaming - VPLMN Rejection
+    category: roaming
+    condition:
+      roaming: true
+      direction: inbound
+      result: failure
+      cause_group: plmn_not_allowed
+    severity: medium
+    recommendation: |
+      Inbound roamer rejected by VPLMN.
+
+      Recommended actions:
+      - Verify roaming agreement with HPLMN
+      - Check PLMN whitelist configuration
+      - Review IR.21/AA.14 connectivity
+      - Validate border gateway (IPX/GRX) routing
+      - Check TADIG code configuration
+
+  - id: R011
+    name: Roaming - HPLMN Rejection
+    category: roaming
+    condition:
+      roaming: true
+      direction: outbound
+      result: failure
+      source: hplmn
+    severity: medium
+    recommendation: |
+      Outbound roamer rejected by HPLMN (home network).
+
+      Recommended actions:
+      - Verify subscriber has roaming privileges enabled
+      - Check CAMEL/IN triggers for roaming control
+      - Review out-of-credit scenarios
+      - Validate MAP/Diameter routing to HPLMN
+      - Check steering of roaming settings
+
+  # Performance Issues
+  - id: R012
+    name: High Latency - Procedure Delay
+    category: performance
+    condition:
+      latency_ms: ">1000"
+      procedure: any
+    severity: medium
+    recommendation: |
+      Abnormal delay detected in procedure completion.
+
+      Recommended actions:
+      - Check network element CPU/memory usage
+      - Review interface congestion (S1/N2/N11/S6a)
+      - Validate database response times
+      - Check for network loops or routing issues
+      - Review recent configuration changes
+
+  # Protocol-Specific
+  - id: R013
+    name: HTTP/2 - Stream Error (5G SBA)
+    category: protocol
+    condition:
+      protocol: http2
+      result: error
+      error_type: stream_error
+    severity: medium
+    recommendation: |
+      HTTP/2 stream error in 5G Service-Based Architecture.
+
+      Recommended actions:
+      - Check NF service registration in NRF
+      - Verify OAuth2 token validity
+      - Review HTTP/2 header compression
+      - Validate JSON schema of NF services
+      - Check SCP routing rules (if applicable)
+
+  - id: R014
+    name: PFCP - Session Establishment Failure
+    category: user_plane
+    condition:
+      protocol: pfcp
+      procedure: session_establishment
+      result: failure
+    severity: high
+    recommendation: |
+      PFCP session establishment failed between SMF and UPF.
+
+      Recommended actions:
+      - Verify UPF selection criteria in SMF
+      - Check N4 interface connectivity
+      - Review UPF capacity and load
+      - Validate PFCP association status
+      - Check PDR/FAR/QER rule installation
+
+  # MAP/CAP Specific
+  - id: R015
+    name: MAP - No Response from HLR
+    category: signaling
+    condition:
+      protocol: map
+      result: timeout
+      operation: [update_location, send_authentication_info]
+    severity: critical
+    recommendation: |
+      MAP operation timeout - no response from HLR.
+
+      Recommended actions:
+      - Verify SS7 connectivity (SCCP/M3UA)
+      - Check HLR availability
+      - Review GT (Global Title) translation
+      - Validate STP routing
+      - Check SCCP connection status
+      - Review HLR capacity
+
+  - id: R016
+    name: CAP - CAMEL Service Issue
+    category: intelligent_network
+    condition:
+      protocol: cap
+      result: failure
+      phase: [1, 2, 3, 4]
+    severity: medium
+    recommendation: |
+      CAMEL Application Part service failure.
+
+      Recommended actions:
+      - Verify gsmSCF availability
+      - Check CAMEL subscription flags
+      - Review service logic in gsmSCF
+      - Validate trigger detection points (TDP)
+      - Check charging correlation
+
+# Rule Groups for Pattern Matching
+rule_groups:
+  authentication:
+    causes: [2, 3, 6, 23, 26]
+    description: "Authentication and security related failures"
+
+  qos:
+    causes: [28, 29, 30, 31, 32, 33]
+    description: "QoS and resource related failures"
+
+  mobility:
+    causes: [40, 41, 42]
+    description: "Mobility and handover failures"
+
+  network_failure:
+    causes: [17, 18, 19, 22, 34, 38]
+    description: "Network-side failures"
+
+# Severity levels
+severity_levels:
+  critical:
+    color: red
+    priority: 1
+    alert: true
+  high:
+    color: orange
+    priority: 2
+    alert: true
+  medium:
+    color: yellow
+    priority: 3
+    alert: false
+  low:
+    color: green
+    priority: 4
+    alert: false
+
+# Auto-recommendation settings
+auto_recommend:
+  enabled: true
+  min_confidence: 0.7
+  max_recommendations: 5
+  include_related: true

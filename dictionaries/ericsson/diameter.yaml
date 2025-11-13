@@ -1,0 +1,51 @@
+# Ericsson Vendor-Specific Diameter AVPs
+# Vendor ID: 193
+
+avps:
+  - code: 1001
+    vendor_id: 193
+    name: "Ericsson-Charging-ID"
+    type: "Unsigned32"
+    description: "Ericsson specific charging identifier"
+
+  - code: 1002
+    vendor_id: 193
+    name: "Ericsson-Service-ID"
+    type: "Unsigned32"
+    description: "Service identifier for Ericsson EPC"
+
+  - code: 1003
+    vendor_id: 193
+    name: "Ericsson-QoS-Profile"
+    type: "Grouped"
+    description: "QoS profile specific to Ericsson"
+
+  - code: 1004
+    vendor_id: 193
+    name: "Ericsson-APN-Configuration"
+    type: "Grouped"
+    description: "APN configuration for Ericsson MME/PGW"
+
+  - code: 1005
+    vendor_id: 193
+    name: "Ericsson-Bearer-ID"
+    type: "Unsigned32"
+    description: "Bearer identifier in Ericsson network"
+
+  - code: 1010
+    vendor_id: 193
+    name: "Ericsson-Policy-Counter"
+    type: "Unsigned64"
+    description: "Policy counter for traffic monitoring"
+
+  - code: 1015
+    vendor_id: 193
+    name: "Ericsson-Roaming-Partner"
+    type: "UTF8String"
+    description: "Roaming partner identifier"
+
+  - code: 1020
+    vendor_id: 193
+    name: "Ericsson-VoLTE-Indicator"
+    type: "Enumerated"
+    description: "Indicates VoLTE capability"
