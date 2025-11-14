@@ -1,0 +1,46 @@
+#!/bin/bash
+
+################################################################################
+# Protei Monitoring - Restart Script
+# Stops and starts the application
+################################################################################
+
+# Application paths
+APP_HOME="/usr/protei/Protei_Monitoring"
+SCRIPTS_DIR="$APP_HOME/scripts"
+
+# Colors
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+print_header() {
+    echo -e "\n${GREEN}========================================${NC}"
+    echo -e "${GREEN}Protei Monitoring - Restarting Application${NC}"
+    echo -e "${GREEN}========================================${NC}\n"
+}
+
+main() {
+    print_header
+
+    # Stop application
+    if [ -x "$SCRIPTS_DIR/stop" ]; then
+        "$SCRIPTS_DIR/stop"
+    else
+        echo "Error: Stop script not found or not executable"
+        exit 1
+    fi
+
+    # Wait a moment
+    sleep 2
+
+    # Start application
+    if [ -x "$SCRIPTS_DIR/start" ]; then
+        "$SCRIPTS_DIR/start"
+    else
+        echo "Error: Start script not found or not executable"
+        exit 1
+    fi
+}
+
+# Run main
+main "$@"

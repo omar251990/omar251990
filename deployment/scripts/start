@@ -1,0 +1,321 @@
+#!/bin/bash
+
+################################################################################
+# Protei Monitoring - Start Script
+# This script validates license, MAC address, and starts the application
+################################################################################
+
+set -e
+
+# Application paths
+APP_HOME="/usr/protei/Protei_Monitoring"
+BIN_DIR="$APP_HOME/bin"
+CONFIG_DIR="$APP_HOME/config"
+LOG_DIR="$APP_HOME/logs"
+PID_FILE="$APP_HOME/tmp/protei.pid"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+print_header() {
+    echo -e "\n${GREEN}========================================${NC}"
+    echo -e "${GREEN}Protei Monitoring - Starting Application${NC}"
+    echo -e "${GREEN}========================================${NC}\n"
+}
+
+# Check if running as protei user
+check_user() {
+    if [ "$(whoami)" != "protei" ] && [ "$EUID" -ne 0 ]; then
+        print_error "This script must be run as 'protei' user or root"
+        exit 1
+    fi
+}
+
+# Check if already running
+check_running() {
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if ps -p "$PID" > /dev/null 2>&1; then
+            print_error "Application is already running (PID: $PID)"
+            print_info "Use '$APP_HOME/scripts/stop' to stop it first"
+            exit 1
+        else
+            print_warning "Stale PID file found, removing..."
+            rm -f "$PID_FILE"
+        fi
+    fi
+}
+
+# Validate license file
+validate_license() {
+    print_info "Validating license..."
+
+    LICENSE_FILE="$CONFIG_DIR/license.cfg"
+
+    if [ ! -f "$LICENSE_FILE" ]; then
+        print_error "License file not found: $LICENSE_FILE"
+        exit 1
+    fi
+
+    # Source license file
+    source "$LICENSE_FILE"
+
+    # Check expiry date
+    if [ -n "$LICENSE_EXPIRY" ]; then
+        CURRENT_DATE=$(date +%s)
+        EXPIRY_DATE=$(date -d "$LICENSE_EXPIRY" +%s 2>/dev/null || echo "0")
+
+        if [ "$EXPIRY_DATE" -lt "$CURRENT_DATE" ]; then
+            print_error "License has expired on $LICENSE_EXPIRY"
+            exit 1
+        fi
+
+        DAYS_LEFT=$(( ($EXPIRY_DATE - $CURRENT_DATE) / 86400 ))
+        if [ "$DAYS_LEFT" -lt 30 ]; then
+            print_warning "License expires in $DAYS_LEFT days"
+        fi
+    fi
+
+    print_success "License valid until $LICENSE_EXPIRY"
+}
+
+# Validate MAC address binding
+validate_mac() {
+    print_info "Validating MAC address binding..."
+
+    LICENSE_FILE="$CONFIG_DIR/license.cfg"
+    source "$LICENSE_FILE"
+
+    if [ -z "$LICENSE_MAC" ]; then
+        print_warning "No MAC address binding in license"
+        return
+    fi
+
+    # Get current MAC addresses
+    CURRENT_MACS=$(ip link show | grep 'link/ether' | awk '{print $2}' | tr '[:lower:]' '[:upper:]')
+
+    # Check if license MAC matches any interface
+    LICENSE_MAC_UPPER=$(echo "$LICENSE_MAC" | tr '[:lower:]' '[:upper:]')
+
+    if echo "$CURRENT_MACS" | grep -q "$LICENSE_MAC_UPPER"; then
+        print_success "MAC address verified: $LICENSE_MAC"
+    else
+        print_error "MAC address mismatch!"
+        print_error "License MAC: $LICENSE_MAC"
+        print_error "Server MACs: $(echo $CURRENT_MACS | tr '\n' ' ')"
+        print_error "This license is not valid for this server"
+        exit 1
+    fi
+}
+
+# Validate enabled protocols
+validate_protocols() {
+    print_info "Loading protocol configuration..."
+
+    PROTOCOLS_FILE="$CONFIG_DIR/protocols.cfg"
+
+    if [ ! -f "$PROTOCOLS_FILE" ]; then
+        print_error "Protocol configuration not found: $PROTOCOLS_FILE"
+        exit 1
+    fi
+
+    source "$PROTOCOLS_FILE"
+
+    # List enabled protocols
+    ENABLED_PROTOCOLS=""
+    [ "$MAP_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS MAP"
+    [ "$CAP_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS CAP"
+    [ "$INAP_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS INAP"
+    [ "$DIAMETER_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS Diameter"
+    [ "$GTP_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS GTP"
+    [ "$PFCP_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS PFCP"
+    [ "$HTTP_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS HTTP"
+    [ "$NGAP_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS NGAP"
+    [ "$S1AP_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS S1AP"
+    [ "$NAS_ENABLED" = "true" ] && ENABLED_PROTOCOLS="$ENABLED_PROTOCOLS NAS"
+
+    if [ -z "$ENABLED_PROTOCOLS" ]; then
+        print_warning "No protocols enabled"
+    else
+        print_success "Enabled protocols:$ENABLED_PROTOCOLS"
+    fi
+}
+
+# Check database connectivity
+check_database() {
+    print_info "Checking database connectivity..."
+
+    DB_FILE="$CONFIG_DIR/db.cfg"
+
+    if [ ! -f "$DB_FILE" ]; then
+        print_warning "Database configuration not found, skipping DB check"
+        return
+    fi
+
+    source "$DB_FILE"
+
+    if [ "$DB_ENABLED" != "true" ]; then
+        print_info "Database disabled in configuration"
+        return
+    fi
+
+    # Test PostgreSQL connection
+    export PGPASSWORD="$DB_PASSWORD"
+    if psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1" > /dev/null 2>&1; then
+        print_success "Database connection successful"
+    else
+        print_error "Cannot connect to database at $DB_HOST:$DB_PORT"
+        print_warning "Application will start without database support"
+    fi
+    unset PGPASSWORD
+}
+
+# Create necessary directories
+create_directories() {
+    print_info "Creating runtime directories..."
+
+    # Create subdirectories
+    mkdir -p "$LOG_DIR"/{system,error,warning,trace,audit,ai,security}
+    mkdir -p "$APP_HOME/cdr"/{MAP,CAP,INAP,Diameter,GTP,PFCP,HTTP,NGAP,S1AP,NAS}
+    mkdir -p "$APP_HOME/tmp"
+
+    # Set permissions
+    chmod 750 "$CONFIG_DIR"
+    chmod 755 "$LOG_DIR"
+    chmod 755 "$APP_HOME/cdr"
+    chmod 700 "$BIN_DIR"
+
+    print_success "Directories created"
+}
+
+# Start the application
+start_application() {
+    print_info "Starting Protei Monitoring..."
+
+    # Check if binary exists
+    if [ ! -f "$BIN_DIR/protei-monitoring" ]; then
+        print_error "Application binary not found: $BIN_DIR/protei-monitoring"
+        exit 1
+    fi
+
+    # Make binary executable
+    chmod +x "$BIN_DIR/protei-monitoring"
+
+    # Set environment variables
+    export PROTEI_HOME="$APP_HOME"
+    export PROTEI_CONFIG="$CONFIG_DIR"
+    export PROTEI_LOGS="$LOG_DIR"
+    export PROTEI_CDR="$APP_HOME/cdr"
+
+    # Start application in background
+    cd "$APP_HOME"
+
+    if [ "$(whoami)" = "root" ]; then
+        # Run as protei user if started by root
+        su - protei -c "$BIN_DIR/protei-monitoring -config $CONFIG_DIR/system.cfg >> $LOG_DIR/system/startup.log 2>&1 &"
+    else
+        "$BIN_DIR/protei-monitoring" -config "$CONFIG_DIR/system.cfg" >> "$LOG_DIR/system/startup.log" 2>&1 &
+    fi
+
+    # Get PID
+    sleep 2
+    PID=$(pgrep -f "protei-monitoring" | head -1)
+
+    if [ -z "$PID" ]; then
+        print_error "Failed to start application"
+        print_info "Check logs: $LOG_DIR/system/startup.log"
+        tail -20 "$LOG_DIR/system/startup.log"
+        exit 1
+    fi
+
+    # Save PID
+    echo "$PID" > "$PID_FILE"
+
+    print_success "Application started successfully"
+    print_info "PID: $PID"
+    print_info "Logs: $LOG_DIR/system/startup.log"
+}
+
+# Verify application is running
+verify_startup() {
+    print_info "Verifying application startup..."
+
+    sleep 3
+
+    if [ -f "$PID_FILE" ]; then
+        PID=$(cat "$PID_FILE")
+        if ps -p "$PID" > /dev/null 2>&1; then
+            print_success "Application is running (PID: $PID)"
+
+            # Check if listening on port
+            CONFIG_FILE="$CONFIG_DIR/system.cfg"
+            if [ -f "$CONFIG_FILE" ]; then
+                PORT=$(grep "^SERVER_PORT=" "$CONFIG_FILE" | cut -d'=' -f2)
+                if [ -n "$PORT" ]; then
+                    sleep 2
+                    if netstat -tlnp 2>/dev/null | grep -q ":$PORT "; then
+                        print_success "Application listening on port $PORT"
+                    else
+                        print_warning "Application not yet listening on port $PORT"
+                    fi
+                fi
+            fi
+
+            return 0
+        else
+            print_error "Application process not found"
+            return 1
+        fi
+    else
+        print_error "PID file not found"
+        return 1
+    fi
+}
+
+# Main execution
+main() {
+    print_header
+
+    check_user
+    check_running
+    validate_license
+    validate_mac
+    validate_protocols
+    check_database
+    create_directories
+    start_application
+    verify_startup
+
+    echo ""
+    print_success "Protei Monitoring started successfully!"
+    echo ""
+    print_info "Management commands:"
+    print_info "  Status:  $APP_HOME/scripts/status"
+    print_info "  Stop:    $APP_HOME/scripts/stop"
+    print_info "  Restart: $APP_HOME/scripts/restart"
+    print_info "  Logs:    tail -f $LOG_DIR/system/startup.log"
+    echo ""
+}
+
+# Run main
+main "$@"
