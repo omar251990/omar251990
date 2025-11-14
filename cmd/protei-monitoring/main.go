@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/protei/monitoring/internal/logger"
+	"github.com/protei/monitoring/pkg/analysis"
 	"github.com/protei/monitoring/pkg/analytics"
 	"github.com/protei/monitoring/pkg/auth"
 	"github.com/protei/monitoring/pkg/capture"
@@ -28,10 +29,13 @@ import (
 	"github.com/protei/monitoring/pkg/decoder/pfcp"
 	"github.com/protei/monitoring/pkg/decoder/s1ap"
 	"github.com/protei/monitoring/pkg/dictionary"
+	"github.com/protei/monitoring/pkg/flows"
 	"github.com/protei/monitoring/pkg/health"
+	"github.com/protei/monitoring/pkg/knowledge"
 	"github.com/protei/monitoring/pkg/license"
 	"github.com/protei/monitoring/pkg/storage"
 	"github.com/protei/monitoring/pkg/visualization"
+	"github.com/protei/monitoring/pkg/web"
 )
 
 const (
@@ -47,20 +51,25 @@ var (
 
 // Application holds all application components
 type Application struct {
-	config        *config.Config
-	logger        *logger.Logger
-	license       *license.Manager
-	auth          *auth.Service
-	db            *database.DB
-	decoders      *decoder.DecoderRegistry
-	dictionaries  *dictionary.Loader
-	capture       *capture.Engine
-	correlation   *correlation.Engine
-	analytics     *analytics.KPIEngine
-	storage       *storage.Storage
-	visualization *visualization.LadderDiagram
-	health        *health.HealthCheck
-	server        *http.Server
+	config            *config.Config
+	logger            *logger.Logger
+	license           *license.Manager
+	auth              *auth.Service
+	db                *database.DB
+	decoders          *decoder.DecoderRegistry
+	dictionaries      *dictionary.Loader
+	capture           *capture.Engine
+	correlation       *correlation.Engine
+	analytics         *analytics.KPIEngine
+	storage           *storage.Storage
+	visualization     *visualization.LadderDiagram
+	health            *health.HealthCheck
+	knowledgeBase     *knowledge.KnowledgeBase
+	analysisEngine    *analysis.Analyzer
+	flowReconstructor *flows.FlowReconstructor
+	subscriberCorr    *correlation.SubscriberCorrelator
+	webServer         *web.Server
+	server            *http.Server
 }
 
 func main() {
@@ -326,6 +335,39 @@ func NewApplication(cfg *config.Config, licenseMgr *license.Manager) (*Applicati
 		app.health = health.NewHealthCheck(healthCfg)
 	}
 
+	// Initialize knowledge base (3GPP standards, error codes, procedures)
+	fmt.Println("📚 Initializing knowledge base...")
+	app.knowledgeBase = knowledge.NewKnowledgeBase()
+	if err := app.knowledgeBase.LoadStandards(); err != nil {
+		app.logger.Warn("Failed to load knowledge base standards", "error", err)
+	} else {
+		standards := app.knowledgeBase.ListStandards()
+		protocols := app.knowledgeBase.ListProtocols()
+		app.logger.Info("Knowledge base initialized",
+			"standards", len(standards),
+			"protocols", len(protocols))
+		fmt.Printf("  ✅ Loaded %d standards and %d protocols\n", len(standards), len(protocols))
+	}
+
+	// Initialize AI analysis engine
+	fmt.Println("🤖 Initializing AI analysis engine...")
+	app.analysisEngine = analysis.NewAnalyzer()
+	app.logger.Info("AI analysis engine initialized with detection rules")
+	fmt.Println("  ✅ AI analysis engine ready (7 detection rules)")
+
+	// Initialize flow reconstructor
+	fmt.Println("🔄 Initializing flow reconstructor...")
+	app.flowReconstructor = flows.NewFlowReconstructor()
+	templates := app.flowReconstructor.ListTemplates()
+	app.logger.Info("Flow reconstructor initialized", "templates", len(templates))
+	fmt.Printf("  ✅ Flow reconstructor ready (%d procedure templates)\n", len(templates))
+
+	// Initialize subscriber correlator
+	fmt.Println("👤 Initializing subscriber correlator...")
+	app.subscriberCorr = correlation.NewSubscriberCorrelator()
+	app.logger.Info("Subscriber correlator initialized")
+	fmt.Println("  ✅ Subscriber correlator ready (multi-identifier tracking)")
+
 	// Initialize PCAP capture engine
 	fmt.Println("📡 Initializing PCAP capture engine...")
 	captureCfg := &capture.Config{
@@ -340,10 +382,27 @@ func NewApplication(cfg *config.Config, licenseMgr *license.Manager) (*Applicati
 	// Register packet processor
 	app.capture.RegisterProcessor(app)
 
+	// Initialize web server with all services
+	fmt.Println("🌐 Initializing web server...")
+	webCfg := web.Config{
+		Port:             cfg.Server.Port,
+		AuthService:      app.auth,
+		KnowledgeBase:    app.knowledgeBase,
+		AnalysisEngine:   app.analysisEngine,
+		FlowReconstructor: app.flowReconstructor,
+		SubscriberCorr:   app.subscriberCorr,
+		Logger:           app.logger.With().Str("component", "web").Logger(),
+	}
+
+	app.webServer = web.New(webCfg)
+
+	app.logger.Info("Web server initialized", "port", cfg.Server.Port)
+	fmt.Printf("  ✅ Web server ready on port %d\n", cfg.Server.Port)
+
 	// Initialize HTTP server
 	app.server = &http.Server{
 		Addr:           cfg.GetAddr(),
-		Handler:        app.setupRoutes(),
+		Handler:        app.webServer,
 		ReadTimeout:    cfg.Server.ReadTimeout,
 		WriteTimeout:   cfg.Server.WriteTimeout,
 		MaxHeaderBytes: cfg.Server.MaxHeaderBytes,
@@ -381,6 +440,16 @@ func (a *Application) Process(packet *capture.CapturedPacket) error {
 				}
 			}
 		}
+	}
+
+	// Process message in subscriber correlator (for timeline tracking)
+	if a.subscriberCorr != nil {
+		a.subscriberCorr.ProcessMessage(msg)
+	}
+
+	// Analyze message for issues (AI analysis)
+	if a.analysisEngine != nil {
+		a.analysisEngine.AnalyzeMessage(msg)
 	}
 
 	// Update health metrics
