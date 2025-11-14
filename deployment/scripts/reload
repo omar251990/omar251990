@@ -1,0 +1,187 @@
+#!/bin/bash
+
+################################################################################
+# Protei Monitoring - Reload Script
+# Reloads configuration without restarting the application
+################################################################################
+
+set -e
+
+# Application paths
+APP_HOME="/usr/protei/Protei_Monitoring"
+CONFIG_DIR="$APP_HOME/config"
+PID_FILE="$APP_HOME/tmp/protei.pid"
+LOG_DIR="$APP_HOME/logs"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+print_header() {
+    echo -e "\n${GREEN}========================================${NC}"
+    echo -e "${GREEN}Protei Monitoring - Reload Configuration${NC}"
+    echo -e "${GREEN}========================================${NC}\n"
+}
+
+# Check if application is running
+check_running() {
+    if [ ! -f "$PID_FILE" ]; then
+        print_error "Application is not running"
+        print_info "Use '$APP_HOME/scripts/start' to start it"
+        exit 1
+    fi
+
+    PID=$(cat "$PID_FILE")
+    if ! ps -p "$PID" > /dev/null 2>&1; then
+        print_error "Application process $PID not found"
+        print_info "Use '$APP_HOME/scripts/start' to start it"
+        exit 1
+    fi
+
+    print_success "Application is running (PID: $PID)"
+}
+
+# Validate configuration files
+validate_config() {
+    print_info "Validating configuration files..."
+
+    local ERRORS=0
+
+    # Check if config files exist
+    for CONFIG_FILE in protocols.cfg db.cfg system.cfg trace.cfg paths.cfg; do
+        if [ ! -f "$CONFIG_DIR/$CONFIG_FILE" ]; then
+            print_warning "Configuration file not found: $CONFIG_FILE"
+        else
+            print_info "  ✓ $CONFIG_FILE"
+
+            # Basic syntax check (check if it's sourceable)
+            if ! bash -n "$CONFIG_DIR/$CONFIG_FILE" 2>/dev/null; then
+                print_error "  ✗ Syntax error in $CONFIG_FILE"
+                ERRORS=$((ERRORS + 1))
+            fi
+        fi
+    done
+
+    if [ $ERRORS -gt 0 ]; then
+        print_error "Configuration validation failed with $ERRORS errors"
+        print_error "Fix errors before reloading"
+        exit 1
+    fi
+
+    print_success "Configuration validation passed"
+}
+
+# Send reload signal to application
+reload_application() {
+    PID=$(cat "$PID_FILE")
+
+    print_info "Sending reload signal to application (PID: $PID)..."
+
+    # Send SIGHUP signal to reload configuration
+    # The application should handle SIGHUP to reload config
+    kill -HUP "$PID" 2>/dev/null
+
+    if [ $? -eq 0 ]; then
+        print_success "Reload signal sent successfully"
+    else
+        print_error "Failed to send reload signal"
+        exit 1
+    fi
+
+    # Wait a moment for reload to complete
+    sleep 2
+}
+
+# Verify reload was successful
+verify_reload() {
+    PID=$(cat "$PID_FILE")
+
+    print_info "Verifying reload..."
+
+    # Check if process is still running
+    if ! ps -p "$PID" > /dev/null 2>&1; then
+        print_error "Application crashed during reload"
+        print_info "Check logs: $LOG_DIR/error/error.log"
+        exit 1
+    fi
+
+    # Check recent logs for reload confirmation
+    SYSTEM_LOG="$LOG_DIR/system/startup.log"
+    if [ -f "$SYSTEM_LOG" ]; then
+        # Look for reload message in last few lines
+        if tail -10 "$SYSTEM_LOG" 2>/dev/null | grep -qi "config.*reload\|reload.*config"; then
+            print_success "Configuration reload confirmed in logs"
+        else
+            print_warning "No reload confirmation found in logs (this may be normal)"
+        fi
+    fi
+
+    print_success "Application still running after reload (PID: $PID)"
+}
+
+# Show what changed
+show_changes() {
+    echo ""
+    print_info "Reloaded configuration files:"
+
+    # List config files and their modification times
+    for CONFIG_FILE in protocols.cfg db.cfg system.cfg trace.cfg paths.cfg; do
+        if [ -f "$CONFIG_DIR/$CONFIG_FILE" ]; then
+            MOD_TIME=$(stat -c %y "$CONFIG_DIR/$CONFIG_FILE" 2>/dev/null | cut -d. -f1)
+            echo "  - $CONFIG_FILE (modified: $MOD_TIME)"
+        fi
+    done
+
+    echo ""
+    print_info "Note: Some changes may require a full restart to take effect:"
+    echo "  - Database connection settings"
+    echo "  - Server port changes"
+    echo "  - License file changes"
+    echo ""
+    print_info "For full restart: $APP_HOME/scripts/restart"
+}
+
+# Log reload action
+log_reload() {
+    RELOAD_LOG="$LOG_DIR/system/reload.log"
+    mkdir -p "$(dirname "$RELOAD_LOG")"
+
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Configuration reloaded by $(whoami)" >> "$RELOAD_LOG"
+}
+
+# Main execution
+main() {
+    print_header
+
+    check_running
+    validate_config
+    reload_application
+    verify_reload
+    log_reload
+    show_changes
+
+    print_success "Configuration reloaded successfully!"
+    echo ""
+}
+
+# Run main
+main "$@"

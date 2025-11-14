@@ -1,0 +1,156 @@
+#!/bin/bash
+
+################################################################################
+# Protei Monitoring - Stop Script
+# Gracefully stops the application with proper cleanup
+################################################################################
+
+set -e
+
+# Application paths
+APP_HOME="/usr/protei/Protei_Monitoring"
+PID_FILE="$APP_HOME/tmp/protei.pid"
+LOG_DIR="$APP_HOME/logs"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+print_header() {
+    echo -e "\n${GREEN}========================================${NC}"
+    echo -e "${GREEN}Protei Monitoring - Stopping Application${NC}"
+    echo -e "${GREEN}========================================${NC}\n"
+}
+
+# Check if application is running
+check_running() {
+    if [ ! -f "$PID_FILE" ]; then
+        print_warning "PID file not found"
+        print_info "Application may not be running"
+
+        # Check if process exists anyway
+        if pgrep -f "protei-monitoring" > /dev/null; then
+            print_warning "Found running process without PID file"
+            return 0
+        else
+            print_info "Application is not running"
+            exit 0
+        fi
+    fi
+
+    PID=$(cat "$PID_FILE")
+    if ! ps -p "$PID" > /dev/null 2>&1; then
+        print_warning "Process $PID is not running"
+        print_info "Removing stale PID file"
+        rm -f "$PID_FILE"
+        exit 0
+    fi
+
+    return 0
+}
+
+# Graceful shutdown
+graceful_shutdown() {
+    PID=$(cat "$PID_FILE" 2>/dev/null || pgrep -f "protei-monitoring" | head -1)
+
+    if [ -z "$PID" ]; then
+        print_error "Cannot find process ID"
+        exit 1
+    fi
+
+    print_info "Sending graceful shutdown signal to PID $PID..."
+
+    # Send SIGTERM for graceful shutdown
+    kill -TERM "$PID" 2>/dev/null || true
+
+    # Wait for process to exit
+    print_info "Waiting for application to stop..."
+    TIMEOUT=30
+    COUNTER=0
+
+    while ps -p "$PID" > /dev/null 2>&1; do
+        sleep 1
+        COUNTER=$((COUNTER + 1))
+
+        if [ $COUNTER -eq 10 ]; then
+            print_info "Still waiting... (draining connections)"
+        fi
+
+        if [ $COUNTER -ge $TIMEOUT ]; then
+            print_warning "Graceful shutdown timeout after ${TIMEOUT}s"
+            print_warning "Forcing shutdown..."
+            kill -KILL "$PID" 2>/dev/null || true
+            sleep 2
+            break
+        fi
+    done
+
+    if ps -p "$PID" > /dev/null 2>&1; then
+        print_error "Failed to stop process $PID"
+        exit 1
+    else
+        print_success "Application stopped successfully"
+    fi
+}
+
+# Cleanup
+cleanup() {
+    print_info "Cleaning up..."
+
+    # Remove PID file
+    rm -f "$PID_FILE"
+
+    # Flush any remaining buffers (if needed)
+    # This would be application-specific
+
+    # Clean temp files
+    find "$APP_HOME/tmp" -type f -name "*.tmp" -delete 2>/dev/null || true
+
+    print_success "Cleanup completed"
+}
+
+# Log shutdown
+log_shutdown() {
+    SHUTDOWN_LOG="$LOG_DIR/system/shutdown.log"
+    mkdir -p "$(dirname "$SHUTDOWN_LOG")"
+
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Application stopped by $(whoami)" >> "$SHUTDOWN_LOG"
+}
+
+# Main execution
+main() {
+    print_header
+
+    check_running
+    graceful_shutdown
+    cleanup
+    log_shutdown
+
+    echo ""
+    print_success "Protei Monitoring stopped successfully!"
+    echo ""
+    print_info "To start again: $APP_HOME/scripts/start"
+    echo ""
+}
+
+# Run main
+main "$@"

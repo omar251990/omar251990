@@ -1,0 +1,275 @@
+#!/bin/bash
+
+################################################################################
+# Protei Monitoring - Status Script
+# Shows current application status and resource usage
+################################################################################
+
+# Application paths
+APP_HOME="/usr/protei/Protei_Monitoring"
+CONFIG_DIR="$APP_HOME/config"
+LOG_DIR="$APP_HOME/logs"
+PID_FILE="$APP_HOME/tmp/protei.pid"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+print_header() {
+    echo -e "\n${GREEN}========================================${NC}"
+    echo -e "${GREEN}Protei Monitoring - Status${NC}"
+    echo -e "${GREEN}========================================${NC}\n"
+}
+
+# Check process status
+check_process() {
+    echo -e "${BLUE}Process Status:${NC}"
+
+    if [ ! -f "$PID_FILE" ]; then
+        echo -e "  Status: ${RED}NOT RUNNING${NC}"
+        echo -e "  PID File: Not found"
+        return 1
+    fi
+
+    PID=$(cat "$PID_FILE")
+
+    if ps -p "$PID" > /dev/null 2>&1; then
+        echo -e "  Status: ${GREEN}RUNNING${NC}"
+        echo -e "  PID: $PID"
+
+        # Get process start time
+        START_TIME=$(ps -p "$PID" -o lstart= 2>/dev/null)
+        echo -e "  Started: $START_TIME"
+
+        # Calculate uptime
+        START_SECONDS=$(ps -p "$PID" -o etimes= 2>/dev/null | tr -d ' ')
+        if [ -n "$START_SECONDS" ]; then
+            DAYS=$((START_SECONDS / 86400))
+            HOURS=$(( (START_SECONDS % 86400) / 3600 ))
+            MINUTES=$(( (START_SECONDS % 3600) / 60 ))
+            SECONDS=$((START_SECONDS % 60))
+            echo -e "  Uptime: ${DAYS}d ${HOURS}h ${MINUTES}m ${SECONDS}s"
+        fi
+
+        return 0
+    else
+        echo -e "  Status: ${RED}NOT RUNNING${NC}"
+        echo -e "  PID: $PID (stale)"
+        return 1
+    fi
+}
+
+# Show resource usage
+show_resources() {
+    if [ ! -f "$PID_FILE" ]; then
+        return
+    fi
+
+    PID=$(cat "$PID_FILE")
+
+    if ! ps -p "$PID" > /dev/null 2>&1; then
+        return
+    fi
+
+    echo ""
+    echo -e "${BLUE}Resource Usage:${NC}"
+
+    # CPU and Memory
+    CPU=$(ps -p "$PID" -o %cpu= 2>/dev/null | tr -d ' ')
+    MEM=$(ps -p "$PID" -o %mem= 2>/dev/null | tr -d ' ')
+    RSS=$(ps -p "$PID" -o rss= 2>/dev/null | tr -d ' ')
+
+    # Convert RSS from KB to MB/GB
+    if [ -n "$RSS" ]; then
+        RSS_MB=$((RSS / 1024))
+        if [ $RSS_MB -gt 1024 ]; then
+            RSS_GB=$(echo "scale=2; $RSS_MB / 1024" | bc)
+            RSS_DISPLAY="${RSS_GB} GB"
+        else
+            RSS_DISPLAY="${RSS_MB} MB"
+        fi
+    fi
+
+    echo -e "  CPU: ${CPU}%"
+    echo -e "  Memory: ${MEM}% (${RSS_DISPLAY})"
+
+    # Thread count
+    THREADS=$(ps -p "$PID" -o nlwp= 2>/dev/null | tr -d ' ')
+    echo -e "  Threads: $THREADS"
+
+    # File descriptors
+    if [ -d "/proc/$PID/fd" ]; then
+        FD_COUNT=$(ls /proc/$PID/fd 2>/dev/null | wc -l)
+        echo -e "  Open FDs: $FD_COUNT"
+    fi
+}
+
+# Show network ports
+show_network() {
+    if [ ! -f "$PID_FILE" ]; then
+        return
+    fi
+
+    PID=$(cat "$PID_FILE")
+
+    if ! ps -p "$PID" > /dev/null 2>&1; then
+        return
+    fi
+
+    echo ""
+    echo -e "${BLUE}Network:${NC}"
+
+    # Get listening ports
+    PORTS=$(netstat -tlnp 2>/dev/null | grep "$PID" | awk '{print $4}' | awk -F: '{print $NF}' | sort -u)
+
+    if [ -n "$PORTS" ]; then
+        echo -e "  Listening Ports:"
+        for PORT in $PORTS; do
+            echo -e "    - $PORT"
+        done
+    else
+        echo -e "  No listening ports found"
+    fi
+
+    # Show connections
+    CONN_COUNT=$(netstat -tnp 2>/dev/null | grep "$PID" | wc -l)
+    if [ "$CONN_COUNT" -gt 0 ]; then
+        echo -e "  Active Connections: $CONN_COUNT"
+    fi
+}
+
+# Show enabled protocols
+show_protocols() {
+    echo ""
+    echo -e "${BLUE}Enabled Protocols:${NC}"
+
+    PROTOCOLS_FILE="$CONFIG_DIR/protocols.cfg"
+
+    if [ ! -f "$PROTOCOLS_FILE" ]; then
+        echo -e "  ${YELLOW}Configuration not found${NC}"
+        return
+    fi
+
+    source "$PROTOCOLS_FILE"
+
+    [ "$MAP_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} MAP" || echo -e "  ${RED}✗${NC} MAP"
+    [ "$CAP_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} CAP" || echo -e "  ${RED}✗${NC} CAP"
+    [ "$INAP_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} INAP" || echo -e "  ${RED}✗${NC} INAP"
+    [ "$DIAMETER_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} Diameter" || echo -e "  ${RED}✗${NC} Diameter"
+    [ "$GTP_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} GTP" || echo -e "  ${RED}✗${NC} GTP"
+    [ "$PFCP_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} PFCP" || echo -e "  ${RED}✗${NC} PFCP"
+    [ "$HTTP_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} HTTP" || echo -e "  ${RED}✗${NC} HTTP"
+    [ "$NGAP_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} NGAP" || echo -e "  ${RED}✗${NC} NGAP"
+    [ "$S1AP_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} S1AP" || echo -e "  ${RED}✗${NC} S1AP"
+    [ "$NAS_ENABLED" = "true" ] && echo -e "  ${GREEN}✓${NC} NAS" || echo -e "  ${RED}✗${NC} NAS"
+}
+
+# Show license status
+show_license() {
+    echo ""
+    echo -e "${BLUE}License Status:${NC}"
+
+    LICENSE_FILE="$CONFIG_DIR/license.cfg"
+
+    if [ ! -f "$LICENSE_FILE" ]; then
+        echo -e "  ${RED}License file not found${NC}"
+        return
+    fi
+
+    source "$LICENSE_FILE"
+
+    echo -e "  Customer: ${LICENSE_CUSTOMER:-Unknown}"
+    echo -e "  Expiry: ${LICENSE_EXPIRY:-Unknown}"
+
+    if [ -n "$LICENSE_EXPIRY" ]; then
+        CURRENT_DATE=$(date +%s)
+        EXPIRY_DATE=$(date -d "$LICENSE_EXPIRY" +%s 2>/dev/null || echo "0")
+
+        if [ "$EXPIRY_DATE" -gt "$CURRENT_DATE" ]; then
+            DAYS_LEFT=$(( ($EXPIRY_DATE - $CURRENT_DATE) / 86400 ))
+            if [ "$DAYS_LEFT" -lt 30 ]; then
+                echo -e "  Days Remaining: ${YELLOW}$DAYS_LEFT${NC}"
+            else
+                echo -e "  Days Remaining: ${GREEN}$DAYS_LEFT${NC}"
+            fi
+        else
+            echo -e "  ${RED}LICENSE EXPIRED${NC}"
+        fi
+    fi
+
+    echo -e "  MAC Address: ${LICENSE_MAC:-Not bound}"
+}
+
+# Show version
+show_version() {
+    echo ""
+    echo -e "${BLUE}Version Information:${NC}"
+
+    VERSION_FILE="$APP_HOME/VERSION"
+
+    if [ -f "$VERSION_FILE" ]; then
+        cat "$VERSION_FILE" | while IFS=: read -r key value; do
+            echo -e "  $key:$value"
+        done
+    else
+        echo -e "  ${YELLOW}Version file not found${NC}"
+    fi
+}
+
+# Show recent logs
+show_logs() {
+    echo ""
+    echo -e "${BLUE}Recent Log Activity:${NC}"
+
+    SYSTEM_LOG="$LOG_DIR/system/startup.log"
+    ERROR_LOG="$LOG_DIR/error/error.log"
+
+    if [ -f "$SYSTEM_LOG" ]; then
+        LAST_SYSTEM=$(tail -1 "$SYSTEM_LOG" 2>/dev/null)
+        if [ -n "$LAST_SYSTEM" ]; then
+            echo -e "  Last System Log:"
+            echo -e "    ${LAST_SYSTEM:0:100}"
+        fi
+    fi
+
+    if [ -f "$ERROR_LOG" ]; then
+        ERROR_COUNT=$(tail -100 "$ERROR_LOG" 2>/dev/null | wc -l)
+        if [ "$ERROR_COUNT" -gt 0 ]; then
+            echo -e "  ${YELLOW}Recent Errors: $ERROR_COUNT (last 100 lines)${NC}"
+        fi
+    fi
+}
+
+# Main execution
+main() {
+    print_header
+
+    check_process
+    RUNNING=$?
+
+    if [ $RUNNING -eq 0 ]; then
+        show_resources
+        show_network
+    fi
+
+    show_protocols
+    show_license
+    show_version
+    show_logs
+
+    echo ""
+
+    if [ $RUNNING -eq 0 ]; then
+        echo -e "${GREEN}Application is healthy and running${NC}"
+    else
+        echo -e "${RED}Application is not running${NC}"
+    fi
+
+    echo ""
+}
+
+# Run main
+main "$@"
