@@ -22,16 +22,20 @@ var embeddedFS embed.FS
 
 // Server represents the web server
 type Server struct {
-	port          int
-	server        *http.Server
-	logger        zerolog.Logger
-	authService   AuthService
-	configManager ConfigManager
-	systemMonitor SystemMonitor
-	dataProvider  DataProvider
-	wsClients     map[*websocket.Conn]bool
-	wsClientsMux  sync.RWMutex
-	upgrader      websocket.Upgrader
+	port             int
+	server           *http.Server
+	logger           zerolog.Logger
+	authService      AuthService
+	configManager    ConfigManager
+	systemMonitor    SystemMonitor
+	dataProvider     DataProvider
+	knowledgeBase    KnowledgeBaseService
+	analysisEngine   AnalysisService
+	flowReconstructor FlowReconstructorService
+	subscriberCorr    SubscriberCorrelatorService
+	wsClients        map[*websocket.Conn]bool
+	wsClientsMux     sync.RWMutex
+	upgrader         websocket.Upgrader
 }
 
 // AuthService interface for authentication
@@ -79,25 +83,67 @@ type DataProvider interface {
 	SearchSessions(filters map[string]interface{}) ([]map[string]interface{}, error)
 }
 
+// KnowledgeBaseService interface for protocol standards and references
+type KnowledgeBaseService interface {
+	GetStandard(id string) (interface{}, error)
+	ListStandards() []interface{}
+	GetProcedures(protocol string) []interface{}
+	GetErrorCode(protocol string, code int) (interface{}, error)
+	Search(query string) []interface{}
+	ListProtocols() []string
+}
+
+// AnalysisService interface for AI-based analysis
+type AnalysisService interface {
+	GetRecentIssues(limit int) []interface{}
+	GetStatistics() interface{}
+	GetIssuesByProtocol(protocol string) []interface{}
+	GetIssuesBySeverity(severity string) []interface{}
+}
+
+// FlowReconstructorService interface for flow reconstruction
+type FlowReconstructorService interface {
+	GetTemplate(name string) interface{}
+	ListTemplates() []interface{}
+	ReconstructFlow(messages []interface{}) interface{}
+}
+
+// SubscriberCorrelatorService interface for subscriber correlation
+type SubscriberCorrelatorService interface {
+	GetProfile(imsi string) interface{}
+	GetProfileByMSISDN(msisdn string) interface{}
+	GetTimeline(imsi string, startTime, endTime time.Time, eventTypes []string) []interface{}
+	GetAllSubscribers() []interface{}
+	GetActiveSubscribers() []interface{}
+}
+
 // Config for web server
 type Config struct {
-	Port          int
-	AuthService   AuthService
-	ConfigManager ConfigManager
-	SystemMonitor SystemMonitor
-	DataProvider  DataProvider
-	Logger        zerolog.Logger
+	Port              int
+	AuthService       AuthService
+	ConfigManager     ConfigManager
+	SystemMonitor     SystemMonitor
+	DataProvider      DataProvider
+	KnowledgeBase     KnowledgeBaseService
+	AnalysisEngine    AnalysisService
+	FlowReconstructor FlowReconstructorService
+	SubscriberCorr    SubscriberCorrelatorService
+	Logger            zerolog.Logger
 }
 
 // New creates a new web server
 func New(cfg Config) *Server {
 	return &Server{
-		port:          cfg.Port,
-		logger:        cfg.Logger,
-		authService:   cfg.AuthService,
-		configManager: cfg.ConfigManager,
-		systemMonitor: cfg.SystemMonitor,
-		dataProvider:  cfg.DataProvider,
+		port:              cfg.Port,
+		logger:            cfg.Logger,
+		authService:       cfg.AuthService,
+		configManager:     cfg.ConfigManager,
+		systemMonitor:     cfg.SystemMonitor,
+		dataProvider:      cfg.DataProvider,
+		knowledgeBase:     cfg.KnowledgeBase,
+		analysisEngine:    cfg.AnalysisEngine,
+		flowReconstructor: cfg.FlowReconstructor,
+		subscriberCorr:    cfg.SubscriberCorr,
 		wsClients:     make(map[*websocket.Conn]bool),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
@@ -143,6 +189,31 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/users", s.requireAuth(s.requireRole("admin", s.handleUsers)))
 	mux.HandleFunc("/api/logs", s.requireAuth(s.handleLogs))
 	mux.HandleFunc("/api/search", s.requireAuth(s.handleSearch))
+
+	// Knowledge Base API routes
+	mux.HandleFunc("/api/knowledge/standards", s.requireAuth(s.handleListStandards))
+	mux.HandleFunc("/api/knowledge/standards/", s.requireAuth(s.handleGetStandard))
+	mux.HandleFunc("/api/knowledge/protocols", s.requireAuth(s.handleListProtocols))
+	mux.HandleFunc("/api/knowledge/procedures/", s.requireAuth(s.handleGetProcedures))
+	mux.HandleFunc("/api/knowledge/error/", s.requireAuth(s.handleGetErrorCode))
+	mux.HandleFunc("/api/knowledge/search", s.requireAuth(s.handleKnowledgeSearch))
+
+	// Analysis/AI API routes
+	mux.HandleFunc("/api/analysis/issues", s.requireAuth(s.handleGetIssues))
+	mux.HandleFunc("/api/analysis/statistics", s.requireAuth(s.handleGetAnalysisStats))
+	mux.HandleFunc("/api/analysis/context/", s.requireAuth(s.handleGetContextHelp))
+
+	// Flow Reconstruction API routes
+	mux.HandleFunc("/api/flows/templates", s.requireAuth(s.handleListFlowTemplates))
+	mux.HandleFunc("/api/flows/templates/", s.requireAuth(s.handleGetFlowTemplate))
+	mux.HandleFunc("/api/flows/reconstruct", s.requireAuth(s.handleReconstructFlow))
+
+	// Subscriber Correlation API routes
+	mux.HandleFunc("/api/subscribers", s.requireAuth(s.handleListSubscribers))
+	mux.HandleFunc("/api/subscribers/active", s.requireAuth(s.handleActiveSubscribers))
+	mux.HandleFunc("/api/subscribers/imsi/", s.requireAuth(s.handleSubscriberByIMSI))
+	mux.HandleFunc("/api/subscribers/msisdn/", s.requireAuth(s.handleSubscriberByMSISDN))
+	mux.HandleFunc("/api/subscribers/timeline/", s.requireAuth(s.handleSubscriberTimeline))
 
 	// WebSocket endpoint
 	mux.HandleFunc("/ws", s.handleWebSocket)
@@ -699,6 +770,371 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.sendJSON(w, http.StatusOK, health)
+}
+
+// Handler: List all standards
+func (s *Server) handleListStandards(w http.ResponseWriter, r *http.Request) {
+	if s.knowledgeBase == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Knowledge base not available")
+		return
+	}
+
+	standards := s.knowledgeBase.ListStandards()
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"standards": standards,
+		"count":     len(standards),
+	})
+}
+
+// Handler: Get specific standard
+func (s *Server) handleGetStandard(w http.ResponseWriter, r *http.Request) {
+	if s.knowledgeBase == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Knowledge base not available")
+		return
+	}
+
+	stdID := strings.TrimPrefix(r.URL.Path, "/api/knowledge/standards/")
+	standard, err := s.knowledgeBase.GetStandard(stdID)
+	if err != nil {
+		s.sendError(w, http.StatusNotFound, fmt.Sprintf("Standard %s not found", stdID))
+		return
+	}
+
+	s.sendJSON(w, http.StatusOK, standard)
+}
+
+// Handler: List all protocols
+func (s *Server) handleListProtocols(w http.ResponseWriter, r *http.Request) {
+	if s.knowledgeBase == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Knowledge base not available")
+		return
+	}
+
+	protocols := s.knowledgeBase.ListProtocols()
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"protocols": protocols,
+		"count":     len(protocols),
+	})
+}
+
+// Handler: Get procedures for a protocol
+func (s *Server) handleGetProcedures(w http.ResponseWriter, r *http.Request) {
+	if s.knowledgeBase == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Knowledge base not available")
+		return
+	}
+
+	protocol := strings.TrimPrefix(r.URL.Path, "/api/knowledge/procedures/")
+	procedures := s.knowledgeBase.GetProcedures(protocol)
+
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"protocol":   protocol,
+		"procedures": procedures,
+		"count":      len(procedures),
+	})
+}
+
+// Handler: Get error code information
+func (s *Server) handleGetErrorCode(w http.ResponseWriter, r *http.Request) {
+	if s.knowledgeBase == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Knowledge base not available")
+		return
+	}
+
+	// Parse URL: /api/knowledge/error/{protocol}/{code}
+	path := strings.TrimPrefix(r.URL.Path, "/api/knowledge/error/")
+	parts := strings.Split(path, "/")
+
+	if len(parts) < 2 {
+		s.sendError(w, http.StatusBadRequest, "Invalid path format. Expected: /api/knowledge/error/{protocol}/{code}")
+		return
+	}
+
+	protocol := parts[0]
+	code := 0
+	fmt.Sscanf(parts[1], "%d", &code)
+
+	errorCode, err := s.knowledgeBase.GetErrorCode(protocol, code)
+	if err != nil {
+		s.sendError(w, http.StatusNotFound, fmt.Sprintf("Error code %d not found for protocol %s", code, protocol))
+		return
+	}
+
+	s.sendJSON(w, http.StatusOK, errorCode)
+}
+
+// Handler: Search knowledge base
+func (s *Server) handleKnowledgeSearch(w http.ResponseWriter, r *http.Request) {
+	if s.knowledgeBase == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Knowledge base not available")
+		return
+	}
+
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		s.sendError(w, http.StatusBadRequest, "Missing query parameter 'q'")
+		return
+	}
+
+	results := s.knowledgeBase.Search(query)
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"query":   query,
+		"results": results,
+		"count":   len(results),
+	})
+}
+
+// Handler: Get detected issues
+func (s *Server) handleGetIssues(w http.ResponseWriter, r *http.Request) {
+	if s.analysisEngine == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Analysis engine not available")
+		return
+	}
+
+	// Parse query parameters
+	limit := 50
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		fmt.Sscanf(limitStr, "%d", &limit)
+	}
+
+	severity := r.URL.Query().Get("severity")
+	protocol := r.URL.Query().Get("protocol")
+
+	var issues []interface{}
+
+	if severity != "" {
+		issues = s.analysisEngine.GetIssuesBySeverity(severity)
+	} else if protocol != "" {
+		issues = s.analysisEngine.GetIssuesByProtocol(protocol)
+	} else {
+		issues = s.analysisEngine.GetRecentIssues(limit)
+	}
+
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"issues": issues,
+		"count":  len(issues),
+	})
+}
+
+// Handler: Get analysis statistics
+func (s *Server) handleGetAnalysisStats(w http.ResponseWriter, r *http.Request) {
+	if s.analysisEngine == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Analysis engine not available")
+		return
+	}
+
+	stats := s.analysisEngine.GetStatistics()
+	s.sendJSON(w, http.StatusOK, stats)
+}
+
+// Handler: Get context-aware help for message/error
+func (s *Server) handleGetContextHelp(w http.ResponseWriter, r *http.Request) {
+	if s.knowledgeBase == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Knowledge base not available")
+		return
+	}
+
+	// Parse URL: /api/analysis/context/{protocol}/{type}/{value}
+	// Example: /api/analysis/context/Diameter/error/5001
+	path := strings.TrimPrefix(r.URL.Path, "/api/analysis/context/")
+	parts := strings.Split(path, "/")
+
+	if len(parts) < 3 {
+		s.sendError(w, http.StatusBadRequest, "Invalid path format")
+		return
+	}
+
+	protocol := parts[0]
+	contextType := parts[1] // "error", "procedure", "message"
+	value := parts[2]
+
+	var result interface{}
+	var err error
+
+	switch contextType {
+	case "error":
+		code := 0
+		fmt.Sscanf(value, "%d", &code)
+		result, err = s.knowledgeBase.GetErrorCode(protocol, code)
+
+	case "procedure":
+		procedures := s.knowledgeBase.GetProcedures(protocol)
+		// Find matching procedure
+		for _, proc := range procedures {
+			result = proc
+			break // Return first match for now
+		}
+
+	default:
+		s.sendError(w, http.StatusBadRequest, "Invalid context type. Must be 'error' or 'procedure'")
+		return
+	}
+
+	if err != nil {
+		s.sendError(w, http.StatusNotFound, "Context not found")
+		return
+	}
+
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"protocol": protocol,
+		"type":     contextType,
+		"value":    value,
+		"context":  result,
+	})
+}
+
+// Handler: List flow templates
+func (s *Server) handleListFlowTemplates(w http.ResponseWriter, r *http.Request) {
+	if s.flowReconstructor == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Flow reconstructor not available")
+		return
+	}
+
+	templates := s.flowReconstructor.ListTemplates()
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"templates": templates,
+		"count":     len(templates),
+	})
+}
+
+// Handler: Get specific flow template
+func (s *Server) handleGetFlowTemplate(w http.ResponseWriter, r *http.Request) {
+	if s.flowReconstructor == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Flow reconstructor not available")
+		return
+	}
+
+	templateName := strings.TrimPrefix(r.URL.Path, "/api/flows/templates/")
+	template := s.flowReconstructor.GetTemplate(templateName)
+
+	if template == nil {
+		s.sendError(w, http.StatusNotFound, fmt.Sprintf("Template %s not found", templateName))
+		return
+	}
+
+	s.sendJSON(w, http.StatusOK, template)
+}
+
+// Handler: Reconstruct flow from messages
+func (s *Server) handleReconstructFlow(w http.ResponseWriter, r *http.Request) {
+	if s.flowReconstructor == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Flow reconstructor not available")
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		s.sendError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var request struct {
+		Messages []interface{} `json:"messages"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	flow := s.flowReconstructor.ReconstructFlow(request.Messages)
+	s.sendJSON(w, http.StatusOK, flow)
+}
+
+// Handler: List all subscribers
+func (s *Server) handleListSubscribers(w http.ResponseWriter, r *http.Request) {
+	if s.subscriberCorr == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Subscriber correlator not available")
+		return
+	}
+
+	subscribers := s.subscriberCorr.GetAllSubscribers()
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"subscribers": subscribers,
+		"count":       len(subscribers),
+	})
+}
+
+// Handler: Get active subscribers
+func (s *Server) handleActiveSubscribers(w http.ResponseWriter, r *http.Request) {
+	if s.subscriberCorr == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Subscriber correlator not available")
+		return
+	}
+
+	subscribers := s.subscriberCorr.GetActiveSubscribers()
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"active_subscribers": subscribers,
+		"count":              len(subscribers),
+	})
+}
+
+// Handler: Get subscriber by IMSI
+func (s *Server) handleSubscriberByIMSI(w http.ResponseWriter, r *http.Request) {
+	if s.subscriberCorr == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Subscriber correlator not available")
+		return
+	}
+
+	imsi := strings.TrimPrefix(r.URL.Path, "/api/subscribers/imsi/")
+	profile := s.subscriberCorr.GetProfile(imsi)
+
+	if profile == nil {
+		s.sendError(w, http.StatusNotFound, fmt.Sprintf("Subscriber %s not found", imsi))
+		return
+	}
+
+	s.sendJSON(w, http.StatusOK, profile)
+}
+
+// Handler: Get subscriber by MSISDN
+func (s *Server) handleSubscriberByMSISDN(w http.ResponseWriter, r *http.Request) {
+	if s.subscriberCorr == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Subscriber correlator not available")
+		return
+	}
+
+	msisdn := strings.TrimPrefix(r.URL.Path, "/api/subscribers/msisdn/")
+	profile := s.subscriberCorr.GetProfileByMSISDN(msisdn)
+
+	if profile == nil {
+		s.sendError(w, http.StatusNotFound, fmt.Sprintf("Subscriber with MSISDN %s not found", msisdn))
+		return
+	}
+
+	s.sendJSON(w, http.StatusOK, profile)
+}
+
+// Handler: Get subscriber timeline
+func (s *Server) handleSubscriberTimeline(w http.ResponseWriter, r *http.Request) {
+	if s.subscriberCorr == nil {
+		s.sendError(w, http.StatusServiceUnavailable, "Subscriber correlator not available")
+		return
+	}
+
+	imsi := strings.TrimPrefix(r.URL.Path, "/api/subscribers/timeline/")
+
+	// Parse query parameters
+	startTime := time.Time{}
+	endTime := time.Time{}
+	eventTypes := make([]string, 0)
+
+	if startStr := r.URL.Query().Get("start"); startStr != "" {
+		startTime, _ = time.Parse(time.RFC3339, startStr)
+	}
+	if endStr := r.URL.Query().Get("end"); endStr != "" {
+		endTime, _ = time.Parse(time.RFC3339, endStr)
+	}
+	if types := r.URL.Query().Get("types"); types != "" {
+		eventTypes = strings.Split(types, ",")
+	}
+
+	timeline := s.subscriberCorr.GetTimeline(imsi, startTime, endTime, eventTypes)
+
+	s.sendJSON(w, http.StatusOK, map[string]interface{}{
+		"imsi":     imsi,
+		"timeline": timeline,
+		"count":    len(timeline),
+	})
 }
 
 // Helper: Send JSON response
