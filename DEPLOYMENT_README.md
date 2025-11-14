@@ -678,6 +678,114 @@ When a new version is released:
 
 ---
 
+## Product Roadmap
+
+Protei Monitoring continues to evolve with cutting-edge features planned for future releases.
+
+### Planned for Future Releases
+
+The following features are in active development or planned for upcoming versions:
+
+#### 🤖 ML-Based Anomaly Detection (v2.1 - Q2 2025)
+- Unsupervised machine learning for automatic anomaly detection
+- Baseline learning for normal network behavior patterns
+- Real-time anomaly scoring and prediction
+- Pattern recognition for recurring issues
+- Predictive failure detection (24-hour advance warning)
+- Auto-tuning thresholds based on learned patterns
+
+#### 📡 Live Traffic Capture (v2.1 - Q2 2025)
+- eBPF-based zero-copy packet capture
+- SPAN/port mirroring support
+- Multi-interface simultaneous capture
+- Kernel bypass with AF_XDP for high performance
+- Hardware timestamping for precise latency measurement
+- 10 Gbps capture throughput with 0% packet loss
+
+#### 🌊 Kafka Streaming Integration (v2.2 - Q3 2025)
+- Real-time event streaming to Apache Kafka
+- Per-protocol topic routing
+- Avro/Protobuf schema registry support
+- Exactly-once delivery semantics
+- Integration with big data platforms (Hadoop, Spark)
+- Stream to Elasticsearch for advanced search
+
+#### 📊 Grafana Dashboard Templates (v2.1 - Q2 2025)
+- 15+ pre-built professional dashboards
+- Executive, protocol, procedure, and operational views
+- Template variables for dynamic filtering
+- Prometheus and PostgreSQL data sources
+- Mobile-optimized responsive design
+- Pre-configured alerting rules
+
+#### 🚀 6G Protocol Readiness (v2.3+ - 2026+)
+- Monitor 3GPP Release 19+ developments
+- AI-native protocol support
+- Terahertz band extensions
+- Quantum-safe cryptography
+- Intent-based networking APIs
+- Digital twin integration protocols
+
+#### 🌐 Distributed Deployment Support (v2.3 - Q4 2025)
+- Multi-node cluster deployment (3-50 nodes)
+- Auto-discovery and coordination
+- Load balancing across nodes
+- Automatic failover on node failure
+- State synchronization via Redis/etcd
+- Support for 1M+ TPS across cluster
+- Geographic distribution for multi-site deployments
+- Kubernetes Helm charts and operators
+
+#### 🔒 REST API Rate Limiting (v2.1 - Q2 2025)
+- Per-user and per-endpoint rate limits
+- Token bucket and sliding window algorithms
+- Daily/monthly API quotas
+- Burst traffic handling
+- IP-based protection
+- Configurable limits by user role
+- Rate limit metrics and alerting
+
+#### 🏢 Multi-Tenancy Support (v2.2 - Q3 2025)
+- Complete data isolation between tenants
+- Resource quotas per tenant (CPU, memory, storage)
+- White-label UI customization per tenant
+- Tenant self-service administration
+- Billing integration and usage tracking
+- Custom domains per tenant
+- Ideal for service providers and MVNOs
+
+#### 📝 Custom Report Builder (v2.2 - Q3 2025)
+- Drag-and-drop visual report designer
+- No-code report creation
+- 20+ chart types (bar, line, pie, heatmap, etc.)
+- Scheduled reports with email distribution
+- Export to PDF, Excel, CSV, JSON
+- 50+ pre-built report templates
+- Custom branding and styling
+
+#### 🔐 Advanced LDAP/AD Integration (v2.2 - Q3 2025)
+- Multiple LDAP server support
+- Full Active Directory schema support
+- Group-to-role mapping with nested groups
+- Dynamic role assignment
+- Connection pooling with failover
+- SSL/TLS support (LDAPS)
+- Kerberos SSO integration
+- User/group synchronization
+- Support for Microsoft AD, OpenLDAP, FreeIPA, Azure AD
+
+### Strategic Goals
+
+- **Performance**: 1M TPS per cluster, <10ms latency, 99.99% availability
+- **Scalability**: Horizontal scaling to 50+ nodes, multi-region support
+- **Intelligence**: 95%+ accuracy in anomaly detection, AI-powered RCA
+- **Integration**: 50+ pre-built integrations, universal API
+- **User Experience**: <2s page loads, mobile-first design, no-code configuration
+
+For detailed roadmap information, see [ROADMAP.md](ROADMAP.md).
+
+---
+
 ## Support
 
 For technical support, questions, or issues:
