@@ -106,13 +106,20 @@ validate_mac() {
     LICENSE_FILE="$CONFIG_DIR/license.cfg"
     source "$LICENSE_FILE"
 
-    if [ -z "$LICENSE_MAC" ]; then
-        print_warning "No MAC address binding in license"
+    if [ -z "$LICENSE_MAC" ] || [ "$LICENSE_MAC" = "00:00:00:00:00:00" ]; then
+        print_warning "No MAC address binding in license (unrestricted)"
         return
     fi
 
-    # Get current MAC addresses
-    CURRENT_MACS=$(ip link show | grep 'link/ether' | awk '{print $2}' | tr '[:lower:]' '[:upper:]')
+    # Get current MAC addresses (try multiple methods)
+    if command -v ip &> /dev/null; then
+        CURRENT_MACS=$(ip link show | grep 'link/ether' | awk '{print $2}' | tr '[:lower:]' '[:upper:]')
+    elif [ -d /sys/class/net ]; then
+        CURRENT_MACS=$(cat /sys/class/net/*/address 2>/dev/null | tr '[:lower:]' '[:upper:]')
+    else
+        print_warning "Cannot detect MAC addresses - skipping validation"
+        return
+    fi
 
     # Check if license MAC matches any interface
     LICENSE_MAC_UPPER=$(echo "$LICENSE_MAC" | tr '[:lower:]' '[:upper:]')
@@ -230,11 +237,12 @@ start_application() {
     # Start application in background
     cd "$APP_HOME"
 
-    if [ "$(whoami)" = "root" ]; then
-        # Run as protei user if started by root
+    if [ "$(whoami)" = "root" ] && id -u protei &>/dev/null; then
+        # Run as protei user if started by root and protei user exists
         su - protei -c "$BIN_DIR/protei-monitoring -config $CONFIG_DIR/system.cfg >> $LOG_DIR/system/startup.log 2>&1 &"
     else
-        "$BIN_DIR/protei-monitoring" -config "$CONFIG_DIR/system.cfg" >> "$LOG_DIR/system/startup.log" 2>&1 &
+        # Run as current user (root or other)
+        "$BIN_DIR/protei-monitoring" >> "$LOG_DIR/system/startup.log" 2>&1 &
     fi
 
     # Get PID
