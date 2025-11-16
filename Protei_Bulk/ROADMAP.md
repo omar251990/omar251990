@@ -104,6 +104,16 @@ Protei_Bulk is an enterprise-grade bulk messaging platform designed for telecom 
 | **Advanced ML-Based Delivery Optimization** | Integrates machine learning models to dynamically adjust routing, timing, and message prioritization based on delivery success, operator response, and campaign performance. | ✅ Available Now |
 | **Multi-Tenancy Support** | Introduces tenant isolation for multiple enterprise customers on the same instance, each with their own routing, branding, and user management domains. | ✅ Available Now |
 
+### Advanced Features
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Voice Calling Integration** | Adds automated voice campaign capability (auto-dialer integration) with text-to-speech and voice message scheduling. | ✅ Available Now |
+| **Chatbot Builder** | Introduces a drag-and-drop conversational flow builder for multi-channel chatbot design (SMS, WhatsApp, Telegram, Web). | ✅ Available Now |
+| **Advanced A/B Testing** | Allows campaign-level performance testing using different message content, routing paths, and delivery times to optimize response rates. | ✅ Available Now |
+| **Customer Journey Automation** | Adds a visual workflow engine for customer engagement flows (triggered by events, user actions, or time schedules). | ✅ Available Now |
+| **Enhanced Security Features** | Expands security controls to include anomaly detection, behavioral analytics, MFA enforcement policies, and message-level encryption for all supported channels. | ✅ Available Now |
+
 ---
 
 ## Version 1.1 (Q2 2025) 🚀 PLANNED
