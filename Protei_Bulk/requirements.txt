@@ -28,7 +28,7 @@ smpplib==2.2.3
 
 # HTTP Client
 httpx==0.26.0
-requests==2.31.0
+requests==2.32.4
 
 # Message Queue
 celery==5.3.6
