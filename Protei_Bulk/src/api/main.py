@@ -107,11 +107,19 @@ async def root():
     }
 
 
-# API routes will be added here
-# Example:
+# API routes
+try:
+    from src.api.routes import analytics
+    app.include_router(analytics.router, prefix="/api/v1")
+    logger.info("Analytics routes loaded")
+except Exception as e:
+    logger.warning(f"Analytics routes not loaded: {e}")
+
+# Additional routes will be added here as they are implemented
 # from src.api.routes import auth, messages, campaigns
-# app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
-# app.include_router(messages.router, prefix="/api/v1/messages", tags=["messages"])
+# app.include_router(auth.router, prefix="/api/v1")
+# app.include_router(messages.router, prefix="/api/v1")
+# app.include_router(campaigns.router, prefix="/api/v1")
 
 
 if __name__ == "__main__":
