@@ -98,6 +98,16 @@ Protei_Bulk is an enterprise-grade bulk messaging platform designed for telecom 
 
 ## Version 1.1 (Q2 2025) 🚀 PLANNED
 
+### Feature Overview
+
+| Feature | Description |
+|---------|-------------|
+| **WhatsApp Business API Integration** | Native support for WhatsApp Business messaging with campaign management, template approval, and delivery tracking integrated into the Bulk platform. |
+| **Viber Messaging Support** | Adds Viber channel capability for rich-media notifications and promotional messages with delivery analytics. |
+| **RCS (Rich Communication Services)** | Enables next-generation messaging through RCS channel (text, images, interactive buttons) fully managed via Protei_Bulk GUI. |
+| **Advanced ML-Based Delivery Optimization** | Integrates machine learning models to dynamically adjust routing, timing, and message prioritization based on delivery success, operator response, and campaign performance. |
+| **Multi-Tenancy Support** | Introduces tenant isolation for multiple enterprise customers on the same instance, each with their own routing, branding, and user management domains. |
+
 ### Enhanced Messaging Channels
 
 #### WhatsApp Business API Integration (Enhanced)
