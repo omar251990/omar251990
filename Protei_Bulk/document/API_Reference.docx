@@ -1,0 +1,349 @@
+# Protei_Bulk API Reference
+
+## Table of Contents
+1. API Overview
+2. Authentication
+3. Common Headers
+4. HTTP Endpoints
+5. SMPP Protocol
+6. Error Codes
+7. Examples
+
+---
+
+## 1. API Overview
+
+Protei_Bulk provides both HTTP REST API and SMPP protocol interfaces for message submission and management.
+
+### Base URL:
+```
+HTTP API: http://your-server:8080/api/v1
+SMPP: your-server:2775
+```
+
+### Supported Formats:
+- JSON (default)
+- XML
+- Form-encoded
+
+## 2. Authentication
+
+### API Key Authentication:
+Include API key in request header:
+```
+X-API-Key: your_api_key_here
+```
+
+### Basic Authentication:
+```
+Authorization: Basic base64(username:password)
+```
+
+### OAuth 2.0 (Optional):
+```
+Authorization: Bearer your_token_here
+```
+
+## 3. Common Headers
+
+### Request Headers:
+```
+Content-Type: application/json
+Accept: application/json
+X-API-Key: your_api_key
+X-Request-ID: unique_request_id (optional)
+```
+
+### Response Headers:
+```
+Content-Type: application/json
+X-Request-ID: echoed_request_id
+X-RateLimit-Remaining: 1000
+X-RateLimit-Reset: 1642329600
+```
+
+## 4. HTTP Endpoints
+
+### 4.1 Health Check
+```
+GET /api/v1/health
+```
+
+Response:
+```json
+{
+  "status": "healthy",
+  "version": "1.0.0",
+  "uptime": 3600,
+  "timestamp": "2025-01-16T14:30:00Z"
+}
+```
+
+### 4.2 Submit Single Message
+```
+POST /api/v1/messages
+```
+
+Request:
+```json
+{
+  "from": "1234",
+  "to": "9876543210",
+  "text": "Hello World",
+  "priority": "normal",
+  "validity_period": 3600
+}
+```
+
+Response:
+```json
+{
+  "message_id": "msg_abc123",
+  "status": "accepted",
+  "submitted_at": "2025-01-16T14:30:00Z"
+}
+```
+
+### 4.3 Submit Bulk Messages
+```
+POST /api/v1/messages/bulk
+```
+
+Request:
+```json
+{
+  "from": "1234",
+  "messages": [
+    {"to": "9876543210", "text": "Message 1"},
+    {"to": "9876543211", "text": "Message 2"},
+    {"to": "9876543212", "text": "Message 3"}
+  ],
+  "priority": "normal"
+}
+```
+
+Response:
+```json
+{
+  "batch_id": "batch_xyz789",
+  "accepted": 3,
+  "rejected": 0,
+  "message_ids": ["msg_001", "msg_002", "msg_003"]
+}
+```
+
+### 4.4 Get Message Status
+```
+GET /api/v1/messages/{message_id}
+```
+
+Response:
+```json
+{
+  "message_id": "msg_abc123",
+  "status": "delivered",
+  "submitted_at": "2025-01-16T14:30:00Z",
+  "delivered_at": "2025-01-16T14:30:05Z",
+  "from": "1234",
+  "to": "9876543210"
+}
+```
+
+### 4.5 Create Campaign
+```
+POST /api/v1/campaigns
+```
+
+Request:
+```json
+{
+  "name": "Summer Promotion",
+  "from": "BRAND",
+  "message_template": "Hello {name}, special offer for you!",
+  "recipients": [
+    {"phone": "9876543210", "name": "John"},
+    {"phone": "9876543211", "name": "Jane"}
+  ],
+  "schedule_at": "2025-01-20T10:00:00Z",
+  "throttle_rate": 100
+}
+```
+
+Response:
+```json
+{
+  "campaign_id": "camp_123",
+  "status": "scheduled",
+  "total_recipients": 2,
+  "created_at": "2025-01-16T14:30:00Z"
+}
+```
+
+### 4.6 Get Campaign Status
+```
+GET /api/v1/campaigns/{campaign_id}
+```
+
+Response:
+```json
+{
+  "campaign_id": "camp_123",
+  "name": "Summer Promotion",
+  "status": "running",
+  "total_recipients": 1000,
+  "sent": 450,
+  "delivered": 420,
+  "failed": 5,
+  "pending": 550,
+  "started_at": "2025-01-20T10:00:00Z"
+}
+```
+
+### 4.7 Get Statistics
+```
+GET /api/v1/statistics
+```
+
+Query Parameters:
+- start_date: ISO 8601 date
+- end_date: ISO 8601 date
+- group_by: hour, day, week, month
+
+Response:
+```json
+{
+  "total_messages": 10000,
+  "delivered": 9500,
+  "failed": 500,
+  "pending": 0,
+  "delivery_rate": 95.0,
+  "average_delivery_time": 2.5
+}
+```
+
+## 5. SMPP Protocol
+
+### Connection Parameters:
+- Host: your-server
+- Port: 2775
+- System Type: SMPP
+- Interface Version: 3.4
+
+### Bind Operations:
+- bind_transmitter: Send messages only
+- bind_receiver: Receive delivery receipts only
+- bind_transceiver: Send and receive
+
+### Submit SM Parameters:
+```
+service_type: ""
+source_addr_ton: 1 (International)
+source_addr_npi: 1 (ISDN)
+dest_addr_ton: 1
+dest_addr_npi: 1
+esm_class: 0 (Default)
+protocol_id: 0
+priority_flag: 0-3
+registered_delivery: 1 (Request delivery receipt)
+data_coding: 0 (Default/GSM)
+short_message: Message text
+```
+
+## 6. Error Codes
+
+### HTTP Status Codes:
+- 200: Success
+- 201: Created
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 429: Too Many Requests
+- 500: Internal Server Error
+- 503: Service Unavailable
+
+### Application Error Codes:
+```json
+{
+  "error": {
+    "code": "INVALID_RECIPIENT",
+    "message": "Recipient phone number is invalid",
+    "details": {
+      "field": "to",
+      "value": "invalid"
+    }
+  }
+}
+```
+
+Common Error Codes:
+- INVALID_RECIPIENT: Invalid phone number
+- INSUFFICIENT_BALANCE: Account balance too low
+- RATE_LIMIT_EXCEEDED: Too many requests
+- INVALID_API_KEY: Authentication failed
+- MESSAGE_TOO_LONG: Message exceeds maximum length
+
+### SMPP Error Codes:
+- 0x00000000: Success
+- 0x00000001: Invalid message length
+- 0x00000002: Invalid command length
+- 0x00000003: Invalid command ID
+- 0x00000004: Invalid bind status
+- 0x00000008: Already bound
+- 0x0000000E: Invalid destination address
+- 0x00000014: Throttling error
+
+## 7. Examples
+
+### cURL Example:
+```bash
+curl -X POST http://localhost:8080/api/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key" \
+  -d '{
+    "from": "1234",
+    "to": "9876543210",
+    "text": "Hello from Protei_Bulk"
+  }'
+```
+
+### Python Example:
+```python
+import requests
+
+url = "http://localhost:8080/api/v1/messages"
+headers = {
+    "Content-Type": "application/json",
+    "X-API-Key": "your_api_key"
+}
+data = {
+    "from": "1234",
+    "to": "9876543210",
+    "text": "Hello from Protei_Bulk"
+}
+
+response = requests.post(url, json=data, headers=headers)
+print(response.json())
+```
+
+### JavaScript Example:
+```javascript
+fetch('http://localhost:8080/api/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': 'your_api_key'
+  },
+  body: JSON.stringify({
+    from: '1234',
+    to: '9876543210',
+    text: 'Hello from Protei_Bulk'
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+---
+
+For API support, contact api-support@protei.com

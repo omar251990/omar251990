@@ -1,0 +1,233 @@
+# Protei_Bulk License Notes
+
+## License Information
+
+### Product: Protei_Bulk Messaging Platform
+### Version: 1.0.0
+### License Type: Commercial
+
+---
+
+## License Agreement
+
+This software is licensed, not sold. By installing or using Protei_Bulk, you agree to the terms and conditions outlined in this license agreement.
+
+## License Types
+
+### 1. Evaluation License
+- **Duration**: 30 days
+- **Features**: All features enabled
+- **Limitations**:
+  - Maximum 1,000 messages per day
+  - Development/testing use only
+  - Not for production use
+- **Support**: Community support only
+
+### 2. Standard License
+- **Duration**: 1 year (renewable)
+- **Features**: All standard features
+- **Limitations**:
+  - Up to 10,000 messages per second
+  - Up to 100 concurrent connections
+  - Single deployment site
+- **Support**: Email support (business hours)
+
+### 3. Professional License
+- **Duration**: 1 year (renewable)
+- **Features**: All features + advanced analytics
+- **Limitations**:
+  - Up to 50,000 messages per second
+  - Up to 500 concurrent connections
+  - Up to 3 deployment sites
+- **Support**: 24/7 email and phone support
+
+### 4. Enterprise License
+- **Duration**: Custom (1-3 years)
+- **Features**: All features + custom development
+- **Limitations**: Custom based on requirements
+- **Support**: 24/7 dedicated support team
+
+## License File Format
+
+The license file (config/license.key) contains:
+
+```
+LICENSE_KEY=<encrypted_key>
+CUSTOMER_ID=<unique_identifier>
+MAX_CONNECTIONS=<limit>
+MAX_THROUGHPUT=<messages_per_second>
+FEATURES=<enabled_features>
+EXPIRY_DATE=<YYYY-MM-DD>
+SIGNATURE=<digital_signature>
+```
+
+## License Validation
+
+The system validates the license at:
+1. **Startup**: License is checked when the application starts
+2. **Runtime**: Periodic validation every 24 hours
+3. **Feature Access**: Each feature checks license before activation
+
+### Validation Checks:
+- ✓ License file exists and is readable
+- ✓ Digital signature is valid
+- ✓ License has not expired
+- ✓ Customer ID matches system
+- ✓ Feature set is authorized
+- ✓ Connection limits not exceeded
+- ✓ Throughput limits not exceeded
+
+## License Expiry
+
+### Warning Periods:
+- **60 days before expiry**: Warning in logs
+- **30 days before expiry**: Email notification
+- **7 days before expiry**: Daily email notifications
+- **On expiry date**: Service stops accepting new messages
+
+### Grace Period:
+- 7 days grace period for license renewal
+- Existing messages will be delivered
+- No new messages accepted after grace period
+- All features disabled after grace period
+
+## Obtaining a License
+
+### Evaluation License:
+1. Visit: https://www.protei.com/trial
+2. Register with company details
+3. Download license file
+4. Install in config/license.key
+
+### Commercial License:
+1. Contact sales: sales@protei.com
+2. Discuss requirements and pricing
+3. Receive quote and contract
+4. Upon payment, receive license file
+5. Install and activate
+
+## License Renewal
+
+### 60 Days Before Expiry:
+1. Contact your account manager or sales@protei.com
+2. Review current usage and requirements
+3. Upgrade or renew as needed
+4. Receive new license file
+5. Install new license (seamless transition)
+
+### Automatic Renewal:
+- Available for annual subscriptions
+- Requires payment method on file
+- 30-day notice before renewal
+- Opt-out available anytime
+
+## License Transfer
+
+Licenses are:
+- ❌ **Not transferable** between organizations
+- ❌ **Not transferable** between different deployments (except Enterprise)
+- ✓ **Transferable** between servers in same deployment
+- ✓ **Transferable** in case of company merger/acquisition (with approval)
+
+### Transfer Request:
+1. Contact support@protei.com
+2. Provide justification
+3. Await approval
+4. Receive updated license
+
+## Multi-Site Licensing
+
+### Professional License:
+- Up to 3 deployment sites
+- Each site requires separate license file
+- Pricing: 50% discount for additional sites
+
+### Enterprise License:
+- Unlimited sites (within agreement)
+- Global license file or site-specific
+- Custom pricing
+
+## Compliance and Auditing
+
+### License Compliance:
+- You agree to use software within license terms
+- Protei may audit usage (with 30 days notice)
+- Violations may result in license termination
+
+### Audit Process:
+1. Written notice 30 days in advance
+2. Provide usage reports and logs
+3. On-site or remote audit
+4. Compliance report
+5. Remediation if needed
+
+## Support Entitlement
+
+### Included with License:
+- Software updates and patches
+- Security updates
+- Bug fixes
+- Documentation updates
+- Community forum access
+
+### Additional Support (varies by license):
+- Email support
+- Phone support
+- Dedicated support engineer
+- Custom development
+- Training and consulting
+
+## Termination
+
+### License may be terminated if:
+- License expires and is not renewed
+- License agreement is violated
+- Payment is not received
+- Audit reveals non-compliance
+
+### Upon Termination:
+- Software must be uninstalled
+- License file must be deleted
+- All copies must be destroyed
+- Data export available (30 days)
+
+## Third-Party Components
+
+Protei_Bulk includes third-party open source components:
+- Python (PSF License)
+- PostgreSQL (PostgreSQL License)
+- Redis (BSD License)
+- Other libraries (see NOTICE file)
+
+These components are licensed separately under their respective licenses.
+
+## Warranty Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+## Limitation of Liability
+
+IN NO EVENT SHALL PROTEI BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## Contact Information
+
+### Sales:
+- Email: sales@protei.com
+- Phone: +1-xxx-xxx-xxxx
+- Website: https://www.protei.com
+
+### Support:
+- Email: support@protei.com
+- Phone: +1-xxx-xxx-xxxx
+- Portal: https://support.protei.com
+
+### Legal:
+- Email: legal@protei.com
+- Address: Protei Corporation, [Address]
+
+---
+
+© 2025 Protei Corporation. All rights reserved.
+
+Document Version: 1.0
+Last Updated: 2025-01-16

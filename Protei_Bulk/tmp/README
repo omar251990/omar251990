@@ -1,0 +1,30 @@
+# Protei_Bulk Temporary Directory
+
+This directory contains temporary and runtime working data for Protei_Bulk.
+
+## Subdirectories:
+- cache/: Cached data for performance optimization
+- parser/: Temporary files during message parsing
+- buffer/: Message buffers and queues
+
+## Runtime Files:
+- protei_bulk.pid: Process ID file (created at runtime)
+- *.lock: Lock files for synchronization
+- *.sock: Unix socket files for IPC
+
+## Cleanup:
+- Temporary files are automatically cleaned up on shutdown
+- Manual cleanup: Run scripts/utils/cleanup_tmp.sh
+- Cache files older than 7 days are automatically removed
+- Parser and buffer files older than 1 day are removed
+
+## Important:
+- Do not manually delete files while application is running
+- Ensure sufficient disk space for temporary operations
+- This directory should be on a fast disk (SSD preferred)
+- Files in this directory are NOT backed up
+
+## Permissions:
+- Directory should be writable by application user
+- PID file requires read/write access
+- Recommended permissions: 755 (rwxr-xr-x)

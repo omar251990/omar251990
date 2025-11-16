@@ -1,0 +1,35 @@
+# Protei_Bulk Libraries Directory
+
+This directory contains embedded libraries and dependencies required by Protei_Bulk.
+
+## Contents:
+- *.so: Shared object files (Linux shared libraries)
+- *.py: Python modules and packages
+- *.jar: Java libraries (if applicable)
+
+## Dependency Management:
+The following libraries may be included:
+- SMPP protocol libraries
+- Database connectors (PostgreSQL, MySQL, Redis)
+- Encryption libraries (OpenSSL, libcrypto)
+- Network libraries
+- Logging frameworks
+- Protocol parsers
+
+## Installation:
+1. Extract all libraries to this directory
+2. Ensure LD_LIBRARY_PATH includes this directory:
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/Protei_Bulk/lib
+
+3. For Python modules:
+   export PYTHONPATH=$PYTHONPATH:/opt/Protei_Bulk/lib
+
+## Verification:
+Run the following to verify library dependencies:
+   ldd ../bin/Protei_Bulk
+
+## Notes:
+- Do not remove or modify library files
+- Keep backup copies of all .so files
+- Check version compatibility before updates
+- Some libraries may be platform-specific (Linux x86_64)

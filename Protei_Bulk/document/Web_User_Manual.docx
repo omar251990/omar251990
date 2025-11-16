@@ -1,0 +1,242 @@
+# Protei_Bulk Web User Manual
+
+## Table of Contents
+1. Introduction
+2. Getting Started
+3. Dashboard
+4. Message Management
+5. Campaign Management
+6. Reports and Analytics
+7. User Management
+8. Settings
+
+---
+
+## 1. Introduction
+
+Welcome to Protei_Bulk Web Interface. This manual guides you through the features and functionalities of the web-based management console.
+
+### Accessing the Web Interface:
+- URL: http://your-server:8080
+- Default credentials will be provided by your administrator
+
+## 2. Getting Started
+
+### 2.1 Login
+1. Navigate to the web interface URL
+2. Enter your username and password
+3. Click "Login"
+
+### 2.2 Dashboard Overview
+The dashboard provides:
+- Real-time statistics
+- Recent message activity
+- System status
+- Quick actions
+
+### 2.3 Navigation Menu
+- Dashboard: Overview and statistics
+- Messages: Send and manage messages
+- Campaigns: Create and manage campaigns
+- Reports: View analytics and reports
+- Users: Manage users (admin only)
+- Settings: Configure preferences
+
+## 3. Dashboard
+
+### 3.1 Statistics Cards
+- Total Messages: Messages sent today/this week/this month
+- Delivery Rate: Percentage of successfully delivered messages
+- Active Campaigns: Currently running campaigns
+- System Status: Health indicators
+
+### 3.2 Recent Activity
+View the latest:
+- Message submissions
+- Campaign launches
+- System events
+- User activities
+
+### 3.3 Charts and Graphs
+- Message volume over time
+- Delivery success rate
+- Response time metrics
+- Error distribution
+
+## 4. Message Management
+
+### 4.1 Send Single Message
+1. Click "Messages" → "Send Message"
+2. Fill in the form:
+   - From: Sender ID or number
+   - To: Recipient phone number
+   - Message: Text content
+   - Priority: Normal, High, or Low
+3. Click "Send"
+4. View confirmation with Message ID
+
+### 4.2 Send Bulk Messages
+1. Click "Messages" → "Bulk Send"
+2. Option A: Upload CSV file
+   - Format: phone_number,message
+   - Example: 9876543210,"Hello World"
+3. Option B: Enter manually
+   - Add recipients one by one
+   - Paste comma-separated list
+4. Set common parameters
+5. Click "Send Bulk"
+
+### 4.3 Message Templates
+1. Click "Messages" → "Templates"
+2. Create new template:
+   - Name: Template identifier
+   - Content: Message text with variables {name}, {code}, etc.
+   - Category: Group templates
+3. Use template when sending messages
+
+### 4.4 Message History
+1. Click "Messages" → "History"
+2. View all sent messages
+3. Filter by:
+   - Date range
+   - Status (sent, delivered, failed)
+   - Sender/Recipient
+4. Export to CSV/Excel
+
+### 4.5 Message Status
+- Submitted: Accepted by system
+- Queued: Waiting to be sent
+- Sent: Transmitted to carrier
+- Delivered: Confirmed delivery
+- Failed: Delivery failed
+- Rejected: Invalid or rejected
+
+## 5. Campaign Management
+
+### 5.1 Create Campaign
+1. Click "Campaigns" → "New Campaign"
+2. Campaign Details:
+   - Name: Campaign identifier
+   - Description: Purpose/notes
+   - Sender ID: From address
+3. Recipients:
+   - Upload CSV file
+   - Import from contacts
+   - Manual entry
+4. Message:
+   - Select template or create new
+   - Personalize with variables
+5. Scheduling:
+   - Send now
+   - Schedule for later
+   - Recurring schedule
+6. Advanced Options:
+   - Throttle rate: Messages per second
+   - Validity period: Message expiration
+   - Priority level
+
+### 5.2 Monitor Campaign
+1. Click "Campaigns" → "Active Campaigns"
+2. View real-time statistics:
+   - Total recipients
+   - Sent count
+   - Delivered count
+   - Failed count
+   - Progress percentage
+3. Actions:
+   - Pause campaign
+   - Resume campaign
+   - Stop campaign
+
+### 5.3 Campaign Reports
+1. Click "Campaigns" → Select campaign → "Report"
+2. View detailed analytics:
+   - Delivery timeline
+   - Success/failure breakdown
+   - Geographic distribution
+   - Carrier statistics
+3. Export report as PDF/Excel
+
+## 6. Reports and Analytics
+
+### 6.1 Message Reports
+- Daily/Weekly/Monthly summaries
+- Delivery success rate
+- Average delivery time
+- Cost analysis
+
+### 6.2 Performance Reports
+- System uptime
+- Throughput (messages per second)
+- Response time
+- Error rates
+
+### 6.3 Custom Reports
+1. Click "Reports" → "Custom Report"
+2. Select parameters:
+   - Date range
+   - Metrics to include
+   - Grouping (by day, week, campaign)
+3. Generate and export
+
+### 6.4 Scheduled Reports
+1. Set up automatic report generation
+2. Configure email delivery
+3. Choose frequency (daily, weekly, monthly)
+
+## 7. User Management
+
+### 7.1 View Users (Admin Only)
+1. Click "Users"
+2. View all system users
+3. See roles and permissions
+
+### 7.2 Add User
+1. Click "Users" → "Add User"
+2. Enter details:
+   - Username
+   - Email
+   - Password
+   - Role (Admin, Operator, User)
+3. Set permissions
+4. Click "Create"
+
+### 7.3 Edit User
+1. Select user from list
+2. Click "Edit"
+3. Modify details
+4. Save changes
+
+### 7.4 User Roles
+- Admin: Full system access
+- Operator: Campaign management, reporting
+- User: Send messages, view own reports
+- Read-Only: View-only access
+
+## 8. Settings
+
+### 8.1 Profile Settings
+- Update password
+- Change email
+- Set notification preferences
+- Configure timezone
+
+### 8.2 API Settings
+- View API key
+- Generate new API key
+- API documentation link
+
+### 8.3 Notification Settings
+- Email notifications
+- SMS notifications
+- Alert thresholds
+
+### 8.4 Display Preferences
+- Theme (Light/Dark)
+- Language
+- Date/Time format
+- Dashboard layout
+
+---
+
+For user support, contact support@protei.com

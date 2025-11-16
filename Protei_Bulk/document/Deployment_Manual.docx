@@ -1,0 +1,220 @@
+# Protei_Bulk Deployment Manual
+
+## Table of Contents
+1. Deployment Overview
+2. Deployment Architectures
+3. High Availability Setup
+4. Load Balancing Configuration
+5. Security Hardening
+6. Performance Tuning
+7. Monitoring Setup
+
+---
+
+## 1. Deployment Overview
+
+This manual describes recommended deployment strategies for Protei_Bulk in production environments.
+
+### Deployment Models:
+- Single Node: Basic deployment for testing and small-scale operations
+- Active-Standby: High availability with automatic failover
+- Active-Active: Load-balanced deployment for high throughput
+- Distributed: Multi-region deployment for global coverage
+
+## 2. Deployment Architectures
+
+### Single Node Deployment
+```
+[Internet] → [Load Balancer] → [Protei_Bulk] → [Database]
+                                       ↓
+                                   [Redis]
+```
+
+Suitable for:
+- Development and testing
+- Small-scale operations (<1000 msg/sec)
+- Initial proof-of-concept
+
+### High Availability Deployment
+```
+[Internet] → [Load Balancer] → [Protei_Bulk Primary] ⇄ [Protei_Bulk Standby]
+                                       ↓                        ↓
+                                [Database Primary] ⇄ [Database Standby]
+                                       ↓                        ↓
+                                   [Redis Cluster]
+```
+
+Features:
+- Automatic failover
+- Zero downtime maintenance
+- Data replication
+
+### Active-Active Deployment
+```
+                    [Load Balancer]
+                    /              \
+[Protei_Bulk Node 1]              [Protei_Bulk Node 2]
+         ↓                                ↓
+    [Database Cluster (PostgreSQL + Pgpool)]
+         ↓                                ↓
+        [Redis Sentinel Cluster]
+```
+
+Benefits:
+- High throughput
+- Horizontal scaling
+- Load distribution
+
+## 3. High Availability Setup
+
+### Database Replication:
+1. Configure PostgreSQL streaming replication
+2. Set up automatic failover with Patroni or repmgr
+3. Configure connection pooling with PgBouncer
+
+### Redis Cluster:
+1. Deploy Redis Sentinel for automatic failover
+2. Configure at least 3 sentinel nodes
+3. Set up Redis persistence (AOF + RDB)
+
+### Application Clustering:
+1. Share configuration via NFS or configuration management
+2. Use shared storage for CDR files
+3. Implement session affinity if required
+
+## 4. Load Balancing Configuration
+
+### HAProxy Configuration Example:
+```
+frontend smpp_frontend
+    bind *:2775
+    mode tcp
+    default_backend smpp_backend
+
+backend smpp_backend
+    mode tcp
+    balance roundrobin
+    option tcp-check
+    server node1 192.168.1.10:2775 check
+    server node2 192.168.1.11:2775 check
+
+frontend http_frontend
+    bind *:8080
+    mode http
+    default_backend http_backend
+
+backend http_backend
+    mode http
+    balance roundrobin
+    option httpchk GET /api/v1/health
+    server node1 192.168.1.10:8080 check
+    server node2 192.168.1.11:8080 check
+```
+
+### NGINX Configuration Example:
+```nginx
+upstream protei_http {
+    least_conn;
+    server 192.168.1.10:8080;
+    server 192.168.1.11:8080;
+}
+
+server {
+    listen 80;
+    location /api/ {
+        proxy_pass http://protei_http;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+## 5. Security Hardening
+
+### Firewall Configuration:
+```bash
+# Allow SMPP
+iptables -A INPUT -p tcp --dport 2775 -j ACCEPT
+
+# Allow HTTP API (from trusted networks only)
+iptables -A INPUT -p tcp --dport 8080 -s 192.168.0.0/16 -j ACCEPT
+
+# Allow management (localhost only)
+iptables -A INPUT -p tcp --dport 9999 -s 127.0.0.1 -j ACCEPT
+```
+
+### SSL/TLS Configuration:
+1. Generate SSL certificates
+2. Configure HTTPS in config/protocol.conf
+3. Enforce TLS 1.2+ minimum version
+4. Use strong cipher suites
+
+### Database Security:
+1. Use strong passwords
+2. Enable SSL connections
+3. Restrict network access
+4. Regular security updates
+
+## 6. Performance Tuning
+
+### Operating System:
+```bash
+# Increase file descriptors
+ulimit -n 65536
+
+# TCP tuning
+sysctl -w net.core.somaxconn=4096
+sysctl -w net.ipv4.tcp_max_syn_backlog=4096
+sysctl -w net.ipv4.tcp_tw_reuse=1
+
+# Memory tuning
+sysctl -w vm.swappiness=10
+```
+
+### Application Configuration:
+```
+# config/app.conf
+max_workers = 20
+queue_size = 50000
+max_memory_mb = 8192
+
+# config/protocol.conf
+[SMPP_Throughput]
+max_mps = 5000
+window_size = 500
+```
+
+### Database Optimization:
+```sql
+-- PostgreSQL tuning
+ALTER SYSTEM SET shared_buffers = '4GB';
+ALTER SYSTEM SET effective_cache_size = '12GB';
+ALTER SYSTEM SET work_mem = '32MB';
+ALTER SYSTEM SET maintenance_work_mem = '512MB';
+```
+
+## 7. Monitoring Setup
+
+### Metrics Collection:
+- CPU, memory, disk usage
+- Network throughput
+- Message processing rate
+- Error rates
+- Queue depths
+
+### Recommended Tools:
+- Prometheus + Grafana for metrics
+- ELK Stack for log aggregation
+- Nagios/Zabbix for alerting
+
+### Key Metrics to Monitor:
+- Messages per second (MPS)
+- Response time (average, p95, p99)
+- Error rate
+- Database connection pool usage
+- Queue size
+- Disk I/O
+
+---
+
+For deployment assistance, contact Protei Professional Services

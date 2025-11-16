@@ -1,0 +1,358 @@
+# Protei_Bulk System Design Document
+
+## Table of Contents
+1. System Overview
+2. Architecture
+3. Components
+4. Data Flow
+5. Database Design
+6. Protocol Handling
+7. Performance Considerations
+8. Security Architecture
+
+---
+
+## 1. System Overview
+
+Protei_Bulk is a high-performance, enterprise-grade bulk messaging platform designed for telecommunications operators and service providers.
+
+### Key Features:
+- Multi-protocol support (SMPP, HTTP REST API)
+- High throughput (10,000+ messages/second)
+- Campaign management
+- Real-time CDR generation
+- Scalable architecture
+- High availability support
+
+### Technology Stack:
+- Language: Python 3.8+
+- Database: PostgreSQL / MySQL
+- Cache: Redis
+- Protocols: SMPP 3.4, HTTP/REST
+- Message Queue: Internal queue system
+
+## 2. Architecture
+
+### 2.1 High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Load Balancer                         │
+└───────────────────┬─────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+┌───────▼─────────┐   ┌────────▼────────┐
+│  SMPP Interface │   │  HTTP Interface  │
+│   Port: 2775    │   │   Port: 8080    │
+└───────┬─────────┘   └────────┬────────┘
+        │                       │
+        └───────────┬───────────┘
+                    │
+        ┌───────────▼───────────┐
+        │   Message Router      │
+        │   & Processor         │
+        └───────────┬───────────┘
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+┌───────▼─────────┐   ┌────────▼────────┐
+│   Database      │   │  Redis Cache    │
+│  (PostgreSQL)   │   │                 │
+└─────────────────┘   └─────────────────┘
+        │
+┌───────▼─────────┐
+│   CDR Writer    │
+└─────────────────┘
+```
+
+### 2.2 Component Architecture
+
+```
+Protei_Bulk Application
+│
+├── Protocol Layer
+│   ├── SMPP Handler
+│   ├── HTTP Handler
+│   └── Protocol Abstraction
+│
+├── Business Logic Layer
+│   ├── Message Processor
+│   ├── Campaign Manager
+│   ├── Queue Manager
+│   └── Routing Engine
+│
+├── Data Access Layer
+│   ├── Database Manager
+│   ├── Cache Manager
+│   └── CDR Writer
+│
+└── Infrastructure Layer
+    ├── Configuration Manager
+    ├── Logging System
+    ├── License Manager
+    └── Monitoring System
+```
+
+## 3. Components
+
+### 3.1 SMPP Handler
+**Purpose**: Handle SMPP protocol connections and message submission
+
+**Responsibilities**:
+- Accept SMPP bind requests
+- Validate credentials
+- Process submit_sm PDUs
+- Send delivery receipts
+- Maintain enquire_link sessions
+
+**Implementation**:
+- Asynchronous socket server
+- Connection pooling
+- Thread-safe message processing
+- Protocol state machine
+
+### 3.2 HTTP Handler
+**Purpose**: Provide REST API for message submission and management
+
+**Responsibilities**:
+- REST API endpoints
+- Authentication and authorization
+- Request validation
+- Response formatting
+
+**Implementation**:
+- Web framework (Flask/FastAPI)
+- JWT/API key authentication
+- Rate limiting
+- Request/response middleware
+
+### 3.3 Message Processor
+**Purpose**: Core message processing and routing
+
+**Responsibilities**:
+- Message validation
+- Queue management
+- Routing decisions
+- Delivery status tracking
+
+**Implementation**:
+- Worker pool pattern
+- Priority queue
+- Message state machine
+- Asynchronous processing
+
+### 3.4 Campaign Manager
+**Purpose**: Manage bulk message campaigns
+
+**Responsibilities**:
+- Campaign creation and scheduling
+- Recipient management
+- Message personalization
+- Progress tracking
+- Throttling
+
+**Implementation**:
+- Background job scheduler
+- Template engine
+- Progress callbacks
+- Pause/resume functionality
+
+### 3.5 Database Manager
+**Purpose**: Handle all database operations
+
+**Responsibilities**:
+- Connection pooling
+- Query execution
+- Transaction management
+- Schema migrations
+
+**Schema**:
+```sql
+-- Messages table
+CREATE TABLE messages (
+    id BIGSERIAL PRIMARY KEY,
+    message_id VARCHAR(64) UNIQUE,
+    from_addr VARCHAR(20),
+    to_addr VARCHAR(20),
+    message_text TEXT,
+    status VARCHAR(20),
+    submitted_at TIMESTAMP,
+    delivered_at TIMESTAMP,
+    campaign_id BIGINT,
+    INDEX idx_message_id (message_id),
+    INDEX idx_status (status),
+    INDEX idx_submitted_at (submitted_at)
+);
+
+-- Campaigns table
+CREATE TABLE campaigns (
+    id BIGSERIAL PRIMARY KEY,
+    campaign_id VARCHAR(64) UNIQUE,
+    name VARCHAR(255),
+    status VARCHAR(20),
+    total_recipients INTEGER,
+    sent_count INTEGER DEFAULT 0,
+    delivered_count INTEGER DEFAULT 0,
+    failed_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP
+);
+
+-- Users table
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(64) UNIQUE,
+    email VARCHAR(255),
+    password_hash VARCHAR(255),
+    role VARCHAR(20),
+    api_key VARCHAR(64),
+    created_at TIMESTAMP
+);
+```
+
+### 3.6 CDR Writer
+**Purpose**: Generate Call Detail Records
+
+**Responsibilities**:
+- Real-time CDR generation
+- File rotation
+- Compression
+- Archive management
+
+**CDR Format**:
+```
+timestamp,transaction_id,protocol,from,to,status,error_code,processing_time,metadata
+```
+
+## 4. Data Flow
+
+### 4.1 Single Message Submission (HTTP)
+```
+Client → HTTP API → Authentication → Validation → Message Processor
+                                                          ↓
+                                                    Queue Manager
+                                                          ↓
+                                                    Database Insert
+                                                          ↓
+                                                    CDR Generation
+                                                          ↓
+                                                    Response to Client
+```
+
+### 4.2 SMPP Message Submission
+```
+SMPP Client → SMPP Handler → Bind Validation → Submit_SM Processing
+                                                        ↓
+                                                  Message Processor
+                                                        ↓
+                                                  Submit_SM_RESP
+                                                        ↓
+                                              Delivery Receipt (async)
+```
+
+### 4.3 Campaign Execution
+```
+Campaign Scheduler → Load Recipients → Template Processing → Message Generation
+                                                                      ↓
+                                                              Queue Messages
+                                                                      ↓
+                                                              Process Queue
+                                                                      ↓
+                                                           Update Campaign Status
+```
+
+## 5. Database Design
+
+### 5.1 Tables Overview
+- messages: Individual message records
+- campaigns: Campaign definitions
+- campaign_recipients: Campaign recipient lists
+- users: System users
+- api_keys: API authentication
+- configurations: System configuration
+- audit_log: Security audit trail
+
+### 5.2 Indexes
+- messages: message_id, status, submitted_at, campaign_id
+- campaigns: campaign_id, status, created_at
+- users: username, api_key
+
+### 5.3 Partitioning
+- Messages table partitioned by month
+- CDR files partitioned by day
+- Archive old partitions quarterly
+
+## 6. Protocol Handling
+
+### 6.1 SMPP Protocol
+- Version: 3.4
+- Supported operations:
+  - bind_transmitter
+  - bind_receiver
+  - bind_transceiver
+  - submit_sm
+  - deliver_sm
+  - unbind
+  - enquire_link
+
+### 6.2 HTTP API
+- REST architecture
+- JSON payload
+- Versioned endpoints (/api/v1)
+- HTTP methods: GET, POST, PUT, DELETE
+- Authentication: API key, JWT
+
+## 7. Performance Considerations
+
+### 7.1 Throughput Optimization
+- Connection pooling (database, Redis)
+- Asynchronous I/O
+- Message batching
+- Cache frequently accessed data
+- Index optimization
+
+### 7.2 Scalability
+- Horizontal scaling (multiple instances)
+- Load balancing
+- Database replication
+- Shared session storage (Redis)
+- Stateless design
+
+### 7.3 Resource Management
+- Worker thread pool
+- Queue size limits
+- Memory management
+- Connection limits
+- File descriptor limits
+
+## 8. Security Architecture
+
+### 8.1 Authentication
+- Multi-factor authentication
+- API key management
+- Password hashing (bcrypt)
+- Session management
+
+### 8.2 Authorization
+- Role-based access control (RBAC)
+- Permission granularity
+- Resource-level permissions
+
+### 8.3 Data Security
+- Encryption at rest (optional)
+- TLS/SSL for transport
+- Database connection encryption
+- Audit logging
+
+### 8.4 Network Security
+- Firewall rules
+- IP whitelisting
+- DDoS protection
+- Rate limiting
+
+---
+
+Document Version: 1.0
+Last Updated: 2025-01-16
