@@ -168,29 +168,54 @@ class Config:
 
     def _load_db_config(self):
         """Load db.conf"""
+        # First, load from environment variables (Docker)
+        if os.getenv("DB_HOST"):
+            self.database.host = os.getenv("DB_HOST", self.database.host)
+            self.database.port = int(os.getenv("DB_PORT", self.database.port))
+            self.database.database = os.getenv("DB_NAME", self.database.database)
+            self.database.username = os.getenv("DB_USER", self.database.username)
+            self.database.password = os.getenv("DB_PASSWORD", self.database.password)
+
+        if os.getenv("REDIS_HOST"):
+            self.redis.host = os.getenv("REDIS_HOST", self.redis.host)
+            self.redis.port = int(os.getenv("REDIS_PORT", self.redis.port))
+            self.redis.password = os.getenv("REDIS_PASSWORD", self.redis.password)
+            redis_db = os.getenv("REDIS_DB", "0")
+            self.redis.database = int(redis_db) if redis_db else 0
+
+        # Then, try to load from config file (optional)
         config_file = self.config_dir / "db.conf"
         if not config_file.exists():
             return
 
-        parser = configparser.ConfigParser()
-        parser.read(config_file)
+        try:
+            parser = configparser.ConfigParser()
+            parser.read(config_file)
 
-        if "PostgreSQL" in parser:
-            db = parser["PostgreSQL"]
-            self.database.host = db.get("host", self.database.host)
-            self.database.port = db.getint("port", self.database.port)
-            self.database.database = db.get("database", self.database.database)
-            self.database.username = db.get("username", self.database.username)
-            self.database.password = db.get("password", self.database.password)
-            self.database.pool_size = db.getint("pool_size", self.database.pool_size)
+            if "PostgreSQL" in parser:
+                db = parser["PostgreSQL"]
+                # Only override if env vars not set
+                if not os.getenv("DB_HOST"):
+                    self.database.host = db.get("host", self.database.host)
+                    self.database.port = db.getint("port", self.database.port)
+                    self.database.database = db.get("database", self.database.database)
+                    self.database.username = db.get("username", self.database.username)
+                    self.database.password = db.get("password", self.database.password)
+                    self.database.pool_size = db.getint("pool_size", self.database.pool_size)
 
-        if "Redis" in parser:
-            redis = parser["Redis"]
-            self.redis.enabled = redis.getboolean("enabled", self.redis.enabled)
-            self.redis.host = redis.get("host", self.redis.host)
-            self.redis.port = redis.getint("port", self.redis.port)
-            self.redis.password = redis.get("password", self.redis.password)
-            self.redis.database = redis.getint("database", self.redis.database)
+            if "Redis" in parser:
+                redis = parser["Redis"]
+                # Only override if env vars not set
+                if not os.getenv("REDIS_HOST"):
+                    self.redis.enabled = redis.getboolean("enabled", self.redis.enabled)
+                    self.redis.host = redis.get("host", self.redis.host)
+                    self.redis.port = redis.getint("port", self.redis.port)
+                    self.redis.password = redis.get("password", self.redis.password)
+                    self.redis.database = redis.getint("database", self.redis.database)
+        except Exception as e:
+            # If config file is malformed, just use env vars or defaults
+            import logging
+            logging.warning(f"Failed to load db.conf: {e}. Using environment variables or defaults.")
 
     def _load_protocol_config(self):
         """Load protocol.conf"""
