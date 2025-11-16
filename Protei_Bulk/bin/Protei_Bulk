@@ -12,9 +12,10 @@ import signal
 import logging
 from pathlib import Path
 
-# Add lib directory to path
-LIB_DIR = Path(__file__).parent.parent / "lib"
-sys.path.insert(0, str(LIB_DIR))
+# Add src directory to path
+BASE_DIR = Path(__file__).parent.parent
+SRC_DIR = BASE_DIR / "src"
+sys.path.insert(0, str(BASE_DIR))
 
 # Application constants
 APP_NAME = "Protei_Bulk"
@@ -123,8 +124,32 @@ def main():
     print(f"=== {APP_NAME} v{VERSION} (Build {BUILD}) ===")
     print(f"Base Directory: {BASE_DIR}")
 
-    app = ProteBulkApp()
-    app.run()
+    # Use FastAPI application if available
+    try:
+        import uvicorn
+        from src.api.main import app as fastapi_app
+        from src.core.config import get_config
+
+        config = get_config(BASE_DIR)
+
+        print(f"Starting FastAPI server on {config.api.bind_address}:{config.api.bind_port}")
+        print(f"API Documentation: http://{config.api.bind_address}:{config.api.bind_port}/api/docs")
+        print(f"Health Check: http://{config.api.bind_address}:{config.api.bind_port}/api/v1/health")
+
+        uvicorn.run(
+            "src.api.main:app",
+            host=config.api.bind_address,
+            port=config.api.bind_port,
+            reload=False,
+            workers=1,  # Single worker for now
+            log_level="info"
+        )
+
+    except ImportError as e:
+        print(f"Warning: FastAPI not available, using basic mode: {e}")
+        # Fall back to basic mode
+        app = ProteBulkApp()
+        app.run()
 
 
 if __name__ == "__main__":
