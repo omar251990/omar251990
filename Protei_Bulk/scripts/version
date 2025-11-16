@@ -1,0 +1,64 @@
+#!/bin/bash
+################################################################################
+# Protei_Bulk - Version Script
+# Displays version, build, and commit information
+################################################################################
+
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(dirname "$SCRIPT_DIR")"
+BIN_DIR="$BASE_DIR/bin"
+
+# Colors for output
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+APP_NAME="Protei_Bulk"
+VERSION="1.0.0"
+BUILD="001"
+BUILD_DATE="2025-01-16"
+
+echo "========================================"
+echo "  $APP_NAME Version Information"
+echo "========================================"
+echo ""
+echo -e "${BLUE}Application:${NC} $APP_NAME"
+echo -e "${BLUE}Version:${NC} $VERSION"
+echo -e "${BLUE}Build:${NC} $BUILD"
+echo -e "${BLUE}Build Date:${NC} $BUILD_DATE"
+echo ""
+echo -e "${BLUE}Installation:${NC}"
+echo "  Base Directory: $BASE_DIR"
+echo "  Binary: $BIN_DIR/Protei_Bulk"
+echo ""
+echo -e "${BLUE}System:${NC}"
+echo "  Platform: $(uname -s)"
+echo "  Architecture: $(uname -m)"
+echo "  Kernel: $(uname -r)"
+echo ""
+
+# Check if binary exists
+if [ -f "$BIN_DIR/Protei_Bulk" ]; then
+    echo -e "${BLUE}Binary Information:${NC}"
+    ls -lh "$BIN_DIR/Protei_Bulk" | awk '{print "  Size: " $5 "\n  Modified: " $6 " " $7 " " $8}'
+
+    # Get file type
+    if command -v file &> /dev/null; then
+        echo -n "  Type: "
+        file "$BIN_DIR/Protei_Bulk" | cut -d: -f2 | xargs
+    fi
+fi
+
+# Git information (if in git repo)
+if command -v git &> /dev/null && [ -d "$BASE_DIR/../.git" ]; then
+    echo ""
+    echo -e "${BLUE}Git Information:${NC}"
+    cd "$BASE_DIR/.." || exit
+    echo "  Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'N/A')"
+    echo "  Commit: $(git rev-parse --short HEAD 2>/dev/null || echo 'N/A')"
+    echo "  Last Modified: $(git log -1 --format=%cd --date=short 2>/dev/null || echo 'N/A')"
+fi
+
+echo ""
+echo "========================================"

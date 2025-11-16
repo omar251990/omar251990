@@ -1,0 +1,160 @@
+# Protei_Bulk Installation Guide
+
+## Table of Contents
+1. Introduction
+2. System Requirements
+3. Pre-installation Checklist
+4. Installation Steps
+5. Post-installation Configuration
+6. Verification
+7. Troubleshooting
+
+---
+
+## 1. Introduction
+
+Protei_Bulk is a high-performance bulk messaging and protocol handling system designed for telecommunications environments. This guide provides step-by-step instructions for installing and configuring Protei_Bulk.
+
+## 2. System Requirements
+
+### Hardware Requirements:
+- CPU: Minimum 4 cores (8+ cores recommended)
+- RAM: Minimum 8 GB (16+ GB recommended)
+- Disk: Minimum 50 GB free space (SSD recommended)
+- Network: 1 Gbps network interface
+
+### Software Requirements:
+- Operating System: Linux (Ubuntu 20.04+ or CentOS 7+)
+- Python: 3.8 or higher
+- Database: PostgreSQL 12+ or MySQL 8+
+- Redis: 5.0+
+- Libraries: See lib/README for complete list
+
+### Network Requirements:
+- Open ports: 2775 (SMPP), 8080 (HTTP API), 9999 (Management)
+- Firewall: Configure to allow inbound/outbound traffic
+- DNS: Properly configured hostname
+
+## 3. Pre-installation Checklist
+
+□ System meets minimum hardware requirements
+□ Operating system is up to date
+□ Required ports are available
+□ Database server is installed and running
+□ Redis server is installed and running
+□ Valid license key obtained
+□ Installation user has appropriate permissions
+
+## 4. Installation Steps
+
+### Step 1: Extract Installation Package
+```bash
+tar -xzf Protei_Bulk_v1.0.0.tar.gz
+cd Protei_Bulk
+```
+
+### Step 2: Set Permissions
+```bash
+chmod +x bin/Protei_Bulk
+chmod +x scripts/*
+chmod +x scripts/utils/*
+```
+
+### Step 3: Configure Database
+- Edit config/db.conf with your database credentials
+- Create database: `createdb protei_bulk`
+- Import schema (if provided)
+
+### Step 4: Configure Application
+- Edit config/app.conf for application settings
+- Edit config/protocol.conf for protocol settings
+- Edit config/network.conf for network settings
+- Edit config/security.conf for security settings
+
+### Step 5: Install License
+- Copy license.key to config/license.key
+- Verify license: `scripts/utils/check_license.sh`
+
+### Step 6: Configure Logging
+- Edit config/log.conf for logging preferences
+- Ensure log directory is writable
+
+## 5. Post-installation Configuration
+
+### Configure System Service (Optional)
+Create systemd service file: /etc/systemd/system/protei_bulk.service
+```
+[Unit]
+Description=Protei Bulk Messaging System
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=forking
+User=protei
+Group=protei
+WorkingDirectory=/opt/Protei_Bulk
+ExecStart=/opt/Protei_Bulk/scripts/start
+ExecStop=/opt/Protei_Bulk/scripts/stop
+ExecReload=/opt/Protei_Bulk/scripts/reload
+PIDFile=/opt/Protei_Bulk/tmp/protei_bulk.pid
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable protei_bulk
+sudo systemctl start protei_bulk
+```
+
+## 6. Verification
+
+### Verify Installation:
+```bash
+scripts/version
+```
+
+### Check Service Status:
+```bash
+scripts/status
+```
+
+### Test Connectivity:
+- SMPP: telnet localhost 2775
+- HTTP API: curl http://localhost:8080/api/v1/health
+
+### Review Logs:
+```bash
+tail -f logs/startup.log
+tail -f logs/system.log
+```
+
+## 7. Troubleshooting
+
+### Application Won't Start:
+- Check license: `scripts/utils/check_license.sh`
+- Verify database connectivity
+- Check logs: `cat logs/startup.log`
+- Ensure ports are not in use: `netstat -tulpn | grep -E '2775|8080'`
+
+### Database Connection Errors:
+- Verify database is running
+- Check credentials in config/db.conf
+- Test connection manually: `psql -h localhost -U protei_user -d protei_bulk`
+
+### Permission Errors:
+- Check file ownership
+- Ensure directories are writable
+- Verify user has proper permissions
+
+### License Errors:
+- Verify license.key exists in config/
+- Check license expiry
+- Contact support for license renewal
+
+---
+
+For additional support, please contact Protei Support at support@protei.com

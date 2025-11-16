@@ -1,0 +1,72 @@
+# Protei_Bulk .gitignore
+
+# Runtime files
+tmp/*.pid
+tmp/*.sock
+tmp/*.lock
+tmp/cache/*
+tmp/parser/*
+tmp/buffer/*
+!tmp/cache/.gitkeep
+!tmp/parser/.gitkeep
+!tmp/buffer/.gitkeep
+
+# Logs
+logs/*.log
+logs/*.log.*
+logs/archive/*.gz
+!logs/.gitkeep
+!logs/archive/.gitkeep
+
+# CDR files
+cdr/smpp/*.cdr
+cdr/smpp/*.cdr.gz
+cdr/http/*.cdr
+cdr/http/*.cdr.gz
+cdr/internal/*.cdr
+cdr/internal/*.cdr.gz
+cdr/archive/*.gz
+!cdr/smpp/.gitkeep
+!cdr/http/.gitkeep
+!cdr/internal/.gitkeep
+!cdr/archive/.gitkeep
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Compiled files
+*.pyc
+__pycache__/
+*.so
+*.o
+*.a
+
+# Environment
+.env
+.env.local
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
+*.bak
+*.backup
+*.old
+
+# Sensitive configuration (uncomment if needed)
+# config/license.key
+# config/db.conf
+# config/security.conf

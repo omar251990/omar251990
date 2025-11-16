@@ -1,0 +1,45 @@
+#!/bin/bash
+################################################################################
+# Protei_Bulk - Restart Script
+# Restarts the Protei_Bulk application service (stop + start)
+################################################################################
+
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+APP_NAME="Protei_Bulk"
+
+echo "========================================"
+echo "  Restarting $APP_NAME"
+echo "========================================"
+
+# Stop the service
+echo "Step 1: Stopping $APP_NAME..."
+"$SCRIPT_DIR/stop"
+STOP_EXIT=$?
+
+if [ $STOP_EXIT -ne 0 ] && [ $STOP_EXIT -ne 1 ]; then
+    echo "Failed to stop $APP_NAME"
+    exit 1
+fi
+
+# Wait a moment
+sleep 2
+
+# Start the service
+echo ""
+echo "Step 2: Starting $APP_NAME..."
+"$SCRIPT_DIR/start"
+START_EXIT=$?
+
+if [ $START_EXIT -eq 0 ]; then
+    echo ""
+    echo "========================================"
+    echo "  $APP_NAME restarted successfully"
+    echo "========================================"
+    exit 0
+else
+    echo ""
+    echo "Failed to start $APP_NAME"
+    exit 1
+fi

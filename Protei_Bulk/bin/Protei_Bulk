@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""
+Protei_Bulk - Main Application Entry Point
+
+A high-performance bulk messaging and protocol handling system.
+Supports SMPP, HTTP, and other telecom protocols with CDR generation.
+"""
+
+import sys
+import os
+import signal
+import logging
+from pathlib import Path
+
+# Add lib directory to path
+LIB_DIR = Path(__file__).parent.parent / "lib"
+sys.path.insert(0, str(LIB_DIR))
+
+# Application constants
+APP_NAME = "Protei_Bulk"
+VERSION = "1.0.0"
+BUILD = "001"
+
+# Directories
+BASE_DIR = Path(__file__).parent.parent
+CONFIG_DIR = BASE_DIR / "config"
+LOG_DIR = BASE_DIR / "logs"
+CDR_DIR = BASE_DIR / "cdr"
+TMP_DIR = BASE_DIR / "tmp"
+
+
+class ProteBulkApp:
+    """Main application class for Protei_Bulk"""
+
+    def __init__(self):
+        self.running = False
+        self.logger = None
+        self.config = {}
+
+    def load_config(self):
+        """Load all configuration files from config/"""
+        print(f"Loading configuration from {CONFIG_DIR}...")
+        # TODO: Implement configuration loading
+        pass
+
+    def setup_logging(self):
+        """Initialize logging system"""
+        log_file = LOG_DIR / "system.log"
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler(sys.stdout)
+            ]
+        )
+        self.logger = logging.getLogger(APP_NAME)
+        self.logger.info(f"Starting {APP_NAME} v{VERSION} (Build {BUILD})")
+
+    def check_license(self):
+        """Verify application license"""
+        license_file = CONFIG_DIR / "license.key"
+        if not license_file.exists():
+            print(f"ERROR: License file not found at {license_file}")
+            return False
+        print("License verified successfully")
+        return True
+
+    def initialize_services(self):
+        """Initialize all protocol handlers and services"""
+        self.logger.info("Initializing services...")
+        # TODO: Initialize SMPP handler
+        # TODO: Initialize HTTP handler
+        # TODO: Initialize CDR writer
+        pass
+
+    def signal_handler(self, signum, frame):
+        """Handle shutdown signals gracefully"""
+        self.logger.info(f"Received signal {signum}, shutting down...")
+        self.running = False
+
+    def run(self):
+        """Main application loop"""
+        # Setup signal handlers
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+        # Initialize
+        self.setup_logging()
+
+        if not self.check_license():
+            sys.exit(1)
+
+        self.load_config()
+        self.initialize_services()
+
+        # Main loop
+        self.running = True
+        self.logger.info("Protei_Bulk is now running...")
+
+        try:
+            while self.running:
+                # TODO: Main processing loop
+                import time
+                time.sleep(1)
+        except Exception as e:
+            self.logger.error(f"Fatal error: {e}", exc_info=True)
+            sys.exit(1)
+        finally:
+            self.shutdown()
+
+    def shutdown(self):
+        """Clean shutdown of all services"""
+        self.logger.info("Shutting down Protei_Bulk...")
+        # TODO: Cleanup services
+        # TODO: Flush CDRs
+        # TODO: Close connections
+        self.logger.info("Shutdown complete")
+
+
+def main():
+    """Application entry point"""
+    print(f"=== {APP_NAME} v{VERSION} (Build {BUILD}) ===")
+    print(f"Base Directory: {BASE_DIR}")
+
+    app = ProteBulkApp()
+    app.run()
+
+
+if __name__ == "__main__":
+    main()

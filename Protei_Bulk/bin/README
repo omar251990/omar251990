@@ -1,0 +1,18 @@
+# Protei_Bulk Binary Directory
+
+This directory contains the main application binaries and encrypted source code.
+
+## Contents:
+- Protei_Bulk: Main executable binary
+- *.enc: Encrypted source/binary files (optional)
+
+## Build & Startup:
+1. Ensure all dependencies in ../lib/ are present
+2. Verify configuration files in ../config/ are properly set
+3. Check license.key is valid in ../config/
+4. Run using ../scripts/start
+
+## Notes:
+- Binary is compiled for Linux x86_64
+- Requires proper permissions (chmod +x Protei_Bulk)
+- Do not modify encrypted files manually
