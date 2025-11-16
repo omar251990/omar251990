@@ -17,32 +17,61 @@ Protei_Bulk is an enterprise-grade bulk messaging and protocol handling system d
 
 ## Quick Start
 
-### Installation
+### Automated Installation (Recommended)
 
-1. Extract the package:
-   ```bash
-   tar -xzf Protei_Bulk_v1.0.0.tar.gz
-   cd Protei_Bulk
-   ```
+The fastest way to install Protei_Bulk with all dependencies:
 
-2. Configure the application:
-   ```bash
-   # Edit configuration files in config/
-   vi config/app.conf
-   vi config/db.conf
-   vi config/protocol.conf
-   ```
+```bash
+# Download/extract Protei_Bulk
+tar -xzf Protei_Bulk_v1.0.0.tar.gz
+cd Protei_Bulk
 
-3. Install license:
-   ```bash
-   cp your_license.key config/license.key
-   scripts/utils/check_license.sh
-   ```
+# Run automated installation (requires root)
+sudo ./install.sh
+```
 
-4. Start the service:
-   ```bash
-   scripts/start
-   ```
+The installation script will:
+- Install PostgreSQL, Redis, Python, and all dependencies
+- Create database user (`protei` / `elephant`) and database (`protei_bulk`)
+- Load database schema (20+ tables) and seed data
+- Set up Python virtual environment
+- Configure the application
+- Create systemd service
+
+**Time**: ~10-15 minutes
+
+After installation:
+```bash
+# Start the service
+sudo systemctl start protei_bulk
+
+# Check status
+sudo systemctl status protei_bulk
+
+# View logs
+tail -f logs/system.log
+```
+
+### Quick Development Setup
+
+For developers with PostgreSQL and Python already installed:
+
+```bash
+./quick_dev_setup.sh
+```
+
+This creates the database, loads the schema, sets up a virtual environment, and installs dependencies in ~5 minutes.
+
+### Manual Installation
+
+See [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) for detailed manual installation instructions.
+
+### Default Credentials
+
+After installation with seed data:
+- **Username**: `admin`
+- **Password**: `Admin@123`
+- **⚠️ Change on first login!**
 
 ### Usage
 
