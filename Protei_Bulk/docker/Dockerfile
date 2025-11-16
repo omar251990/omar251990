@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y \
     g++ \
     postgresql-client \
     libpq-dev \
+    libldap2-dev \
+    libsasl2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
