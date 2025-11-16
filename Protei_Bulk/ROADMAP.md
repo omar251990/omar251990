@@ -94,19 +94,19 @@ Protei_Bulk is an enterprise-grade bulk messaging platform designed for telecom 
 - ✅ Prometheus metrics integration
 - ✅ Database partitioning for scalability
 
+### Key Features Summary
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **WhatsApp Business API Integration** | Native support for WhatsApp Business messaging with campaign management, template approval, and delivery tracking integrated into the Bulk platform. | ✅ Available Now |
+| **Viber Messaging Support** | Adds Viber channel capability for rich-media notifications and promotional messages with delivery analytics. | ✅ Available Now |
+| **RCS (Rich Communication Services)** | Enables next-generation messaging through RCS channel (text, images, interactive buttons) fully managed via Protei_Bulk GUI. | ✅ Available Now |
+| **Advanced ML-Based Delivery Optimization** | Integrates machine learning models to dynamically adjust routing, timing, and message prioritization based on delivery success, operator response, and campaign performance. | ✅ Available Now |
+| **Multi-Tenancy Support** | Introduces tenant isolation for multiple enterprise customers on the same instance, each with their own routing, branding, and user management domains. | ✅ Available Now |
+
 ---
 
 ## Version 1.1 (Q2 2025) 🚀 PLANNED
-
-### Feature Overview
-
-| Feature | Description |
-|---------|-------------|
-| **WhatsApp Business API Integration** | Native support for WhatsApp Business messaging with campaign management, template approval, and delivery tracking integrated into the Bulk platform. |
-| **Viber Messaging Support** | Adds Viber channel capability for rich-media notifications and promotional messages with delivery analytics. |
-| **RCS (Rich Communication Services)** | Enables next-generation messaging through RCS channel (text, images, interactive buttons) fully managed via Protei_Bulk GUI. |
-| **Advanced ML-Based Delivery Optimization** | Integrates machine learning models to dynamically adjust routing, timing, and message prioritization based on delivery success, operator response, and campaign performance. |
-| **Multi-Tenancy Support** | Introduces tenant isolation for multiple enterprise customers on the same instance, each with their own routing, branding, and user management domains. |
 
 ### Enhanced Messaging Channels
 
