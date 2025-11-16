@@ -114,6 +114,15 @@ Protei_Bulk is an enterprise-grade bulk messaging platform designed for telecom 
 | **Customer Journey Automation** | Adds a visual workflow engine for customer engagement flows (triggered by events, user actions, or time schedules). | ✅ Available Now |
 | **Enhanced Security Features** | Expands security controls to include anomaly detection, behavioral analytics, MFA enforcement policies, and message-level encryption for all supported channels. | ✅ Available Now |
 
+### AI & Intelligence Features
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **AI Campaign Designer** | Generative-AI-assisted content generation and automatic campaign planning. | ✅ Available Now |
+| **Omni-channel Analytics Hub** | Unified dashboard for cross-channel insights (SMS, USSD, WhatsApp, Email, Voice, RCS). | ✅ Available Now |
+| **Self-healing Infrastructure** | Automated node recovery, route rebalancing, and adaptive scaling under high load. | ✅ Available Now |
+| **Federated Data Privacy Compliance** | Built-in GDPR, PDPL, and local regulatory compliance with anonymization and consent tracking. | ✅ Available Now |
+
 ---
 
 ## Version 1.1 (Q2 2025) 🚀 PLANNED
