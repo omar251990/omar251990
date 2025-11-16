@@ -1,0 +1,336 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: protei-bulk
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: protei-bulk-config
+  namespace: protei-bulk
+data:
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_NAME: "protei_bulk"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: protei-bulk-secrets
+  namespace: protei-bulk
+type: Opaque
+stringData:
+  DB_USER: "protei"
+  DB_PASSWORD: "elephant"
+  SECRET_KEY: "your-secret-key-here"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: protei-bulk-app
+  namespace: protei-bulk
+  labels:
+    app: protei-bulk
+    component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: protei-bulk
+      component: api
+  template:
+    metadata:
+      labels:
+        app: protei-bulk
+        component: api
+    spec:
+      containers:
+      - name: protei-bulk
+        image: protei/protei-bulk:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 2775
+          name: smpp
+        - containerPort: 9999
+          name: management
+        envFrom:
+        - configMapRef:
+            name: protei-bulk-config
+        - secretRef:
+            name: protei-bulk-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: logs
+          mountPath: /opt/protei_bulk/logs
+        - name: cdr
+          mountPath: /opt/protei_bulk/cdr
+      volumes:
+      - name: logs
+        persistentVolumeClaim:
+          claimName: protei-bulk-logs-pvc
+      - name: cdr
+        persistentVolumeClaim:
+          claimName: protei-bulk-cdr-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: protei-bulk-worker
+  namespace: protei-bulk
+  labels:
+    app: protei-bulk
+    component: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: protei-bulk
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: protei-bulk
+        component: worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: protei/protei-bulk:1.0.0
+        command: ["celery", "-A", "src.services.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
+        envFrom:
+        - configMapRef:
+            name: protei-bulk-config
+        - secretRef:
+            name: protei-bulk-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: protei-bulk-service
+  namespace: protei-bulk
+  labels:
+    app: protei-bulk
+spec:
+  type: LoadBalancer
+  selector:
+    app: protei-bulk
+    component: api
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: smpp
+    port: 2775
+    targetPort: 2775
+    protocol: TCP
+  - name: management
+    port: 9999
+    targetPort: 9999
+    protocol: TCP
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: protei-bulk
+spec:
+  serviceName: postgres-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: "protei_bulk"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: protei-bulk-secrets
+              key: DB_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: protei-bulk-secrets
+              key: DB_PASSWORD
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: protei-bulk
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: protei-bulk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: protei-bulk
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: protei-bulk-hpa
+  namespace: protei-bulk
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: protei-bulk-app
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: protei-bulk-logs-pvc
+  namespace: protei-bulk
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: protei-bulk-cdr-pvc
+  namespace: protei-bulk
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
