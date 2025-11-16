@@ -115,6 +115,13 @@ try:
 except Exception as e:
     logger.warning(f"Analytics routes not loaded: {e}")
 
+try:
+    from src.api.routes import bulk_api
+    app.include_router(bulk_api.router)
+    logger.info("Bulk API routes loaded")
+except Exception as e:
+    logger.warning(f"Bulk API routes not loaded: {e}")
+
 # Additional routes will be added here as they are implemented
 # from src.api.routes import auth, messages, campaigns
 # app.include_router(auth.router, prefix="/api/v1")
