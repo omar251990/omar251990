@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# Protei_Bulk Status Script
+# Displays comprehensive system status following SMSC standards
+#
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+PROTEI_BASE="/usr/protei/Protei_Bulk"
+PROTEI_PID="${PROTEI_BASE}/tmp/protei_bulk.pid"
+
+echo -e "${BLUE}╔══════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║  Protei_Bulk Enterprise Edition - System Status     ║${NC}"
+echo -e "${BLUE}╚══════════════════════════════════════════════════════╝${NC}"
+echo
+
+# Check if running
+if [ ! -f "${PROTEI_PID}" ]; then
+    echo -e "Application Status: ${RED}STOPPED${NC}"
+    echo -e "PID File: ${RED}Not found${NC}"
+    exit 3
+fi
+
+PID=$(cat "${PROTEI_PID}")
+
+if ! ps -p ${PID} > /dev/null 2>&1; then
+    echo -e "Application Status: ${RED}STOPPED${NC} (stale PID file)"
+    echo -e "PID File: ${YELLOW}${PROTEI_PID} (stale)${NC}"
+    exit 3
+fi
+
+echo -e "Application Status: ${GREEN}RUNNING${NC}"
+echo -e "PID: ${GREEN}${PID}${NC}"
+echo
+
+# Process information
+echo -e "${BLUE}Process Information:${NC}"
+ps -p ${PID} -o pid,ppid,user,%cpu,%mem,vsz,rss,etime,cmd --no-headers | while read line; do
+    echo "  $line"
+done
+echo
+
+# System resources
+echo -e "${BLUE}System Resources:${NC}"
+CPU_USAGE=$(top -b -n 1 -p ${PID} | tail -1 | awk '{print $9}')
+MEM_USAGE=$(top -b -n 1 -p ${PID} | tail -1 | awk '{print $10}')
+echo -e "  CPU Usage: ${CPU_USAGE}%"
+echo -e "  Memory Usage: ${MEM_USAGE}%"
+echo
+
+# Network ports
+echo -e "${BLUE}Network Ports:${NC}"
+netstat -tlnp 2>/dev/null | grep ${PID} | while read line; do
+    echo "  $line"
+done
+echo
+
+# Recent log entries
+echo -e "${BLUE}Recent Log Entries (last 10):${NC}"
+if [ -f "${PROTEI_BASE}/logs/application.log" ]; then
+    tail -10 "${PROTEI_BASE}/logs/application.log" | while read line; do
+        echo "  $line"
+    done
+else
+    echo -e "  ${YELLOW}No log file found${NC}"
+fi
+echo
+
+# CDR statistics
+echo -e "${BLUE}CDR Statistics (today):${NC}"
+if [ -f "${PROTEI_BASE}/cdr/cdr.log" ]; then
+    TODAY=$(date +%Y-%m-%d)
+    TOTAL=$(grep "^${TODAY}" "${PROTEI_BASE}/cdr/cdr.log" 2>/dev/null | wc -l)
+    SUCCESS=$(grep "^${TODAY}" "${PROTEI_BASE}/cdr/cdr.log" 2>/dev/null | grep "DELIVERED" | wc -l)
+    FAILED=$(grep "^${TODAY}" "${PROTEI_BASE}/cdr/cdr.log" 2>/dev/null | grep "FAILED" | wc -l)
+    echo -e "  Total Messages: ${TOTAL}"
+    echo -e "  Successful: ${GREEN}${SUCCESS}${NC}"
+    echo -e "  Failed: ${RED}${FAILED}${NC}"
+    if [ ${TOTAL} -gt 0 ]; then
+        SUCCESS_RATE=$(awk "BEGIN {printf \"%.2f\", (${SUCCESS}/${TOTAL})*100}")
+        echo -e "  Success Rate: ${SUCCESS_RATE}%"
+    fi
+else
+    echo -e "  ${YELLOW}No CDR data available${NC}"
+fi
+echo
+
+# File sizes
+echo -e "${BLUE}Log File Sizes:${NC}"
+du -sh "${PROTEI_BASE}/logs/"* 2>/dev/null | while read size file; do
+    echo "  $size  $(basename $file)"
+done
+echo
+
+# Configuration
+echo -e "${BLUE}Configuration:${NC}"
+echo -e "  Base Directory: ${PROTEI_BASE}"
+echo -e "  Config File: ${PROTEI_BASE}/config/bulk.cfg"
+if [ -f "${PROTEI_BASE}/version" ]; then
+    VERSION=$(cat "${PROTEI_BASE}/version")
+    echo -e "  Version: ${VERSION}"
+fi
+echo
+
+exit 0

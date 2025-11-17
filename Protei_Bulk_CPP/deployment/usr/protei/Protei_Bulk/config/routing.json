@@ -1,0 +1,219 @@
+{
+  "version": "1.0.0",
+  "description": "Routing configuration following Protei SMSC standards",
+  "routing_rules": [
+    {
+      "rule_id": "ROUTE_001",
+      "rule_name": "Saudi Arabia - Mobily",
+      "priority": 100,
+      "enabled": true,
+      "conditions": {
+        "country_code": "SA",
+        "operator": "Mobily",
+        "msisdn_prefix": ["966505", "966506", "966507", "966508"],
+        "time_window": {
+          "start": "00:00:00",
+          "end": "23:59:59",
+          "timezone": "Asia/Riyadh"
+        }
+      },
+      "action": {
+        "smsc_id": "SMSC_MOBILY_01",
+        "backup_smsc_id": "SMSC_MOBILY_02",
+        "max_tps": 5000,
+        "priority": "high",
+        "cost_per_message": 0.025
+      },
+      "failover": {
+        "enabled": true,
+        "max_retries": 3,
+        "retry_interval_seconds": 30,
+        "fallback_route": "ROUTE_DEFAULT"
+      }
+    },
+    {
+      "rule_id": "ROUTE_002",
+      "rule_name": "Saudi Arabia - STC",
+      "priority": 100,
+      "enabled": true,
+      "conditions": {
+        "country_code": "SA",
+        "operator": "STC",
+        "msisdn_prefix": ["966500", "966501", "966502", "966503"],
+        "time_window": {
+          "start": "00:00:00",
+          "end": "23:59:59",
+          "timezone": "Asia/Riyadh"
+        }
+      },
+      "action": {
+        "smsc_id": "SMSC_STC_01",
+        "backup_smsc_id": "SMSC_STC_02",
+        "max_tps": 5000,
+        "priority": "high",
+        "cost_per_message": 0.025
+      },
+      "failover": {
+        "enabled": true,
+        "max_retries": 3,
+        "retry_interval_seconds": 30,
+        "fallback_route": "ROUTE_DEFAULT"
+      }
+    },
+    {
+      "rule_id": "ROUTE_003",
+      "rule_name": "Saudi Arabia - Zain",
+      "priority": 100,
+      "enabled": true,
+      "conditions": {
+        "country_code": "SA",
+        "operator": "Zain",
+        "msisdn_prefix": ["966509", "966510", "966511", "966512"],
+        "time_window": {
+          "start": "00:00:00",
+          "end": "23:59:59",
+          "timezone": "Asia/Riyadh"
+        }
+      },
+      "action": {
+        "smsc_id": "SMSC_ZAIN_01",
+        "backup_smsc_id": "SMSC_ZAIN_02",
+        "max_tps": 5000,
+        "priority": "high",
+        "cost_per_message": 0.025
+      },
+      "failover": {
+        "enabled": true,
+        "max_retries": 3,
+        "retry_interval_seconds": 30,
+        "fallback_route": "ROUTE_DEFAULT"
+      }
+    },
+    {
+      "rule_id": "ROUTE_DEFAULT",
+      "rule_name": "Default International Route",
+      "priority": 1,
+      "enabled": true,
+      "conditions": {
+        "match_all": true
+      },
+      "action": {
+        "smsc_id": "SMSC_INTERNATIONAL",
+        "backup_smsc_id": null,
+        "max_tps": 1000,
+        "priority": "normal",
+        "cost_per_message": 0.05
+      },
+      "failover": {
+        "enabled": false,
+        "max_retries": 0,
+        "retry_interval_seconds": 0,
+        "fallback_route": null
+      }
+    }
+  ],
+  "smsc_connections": [
+    {
+      "smsc_id": "SMSC_MOBILY_01",
+      "smsc_name": "Mobily Primary SMSC",
+      "host": "smsc1.mobily.com.sa",
+      "port": 2775,
+      "system_id": "PROTEI_BULK_01",
+      "password": "encrypted_password_1",
+      "system_type": "SMPP",
+      "interface_version": "3.4",
+      "addr_ton": 1,
+      "addr_npi": 1,
+      "bind_type": "transceiver",
+      "max_connections": 10,
+      "enquire_link_interval": 30,
+      "window_size": 100,
+      "throttle_delay_ms": 0,
+      "enabled": true
+    },
+    {
+      "smsc_id": "SMSC_MOBILY_02",
+      "smsc_name": "Mobily Backup SMSC",
+      "host": "smsc2.mobily.com.sa",
+      "port": 2775,
+      "system_id": "PROTEI_BULK_01",
+      "password": "encrypted_password_1",
+      "system_type": "SMPP",
+      "interface_version": "3.4",
+      "addr_ton": 1,
+      "addr_npi": 1,
+      "bind_type": "transceiver",
+      "max_connections": 10,
+      "enquire_link_interval": 30,
+      "window_size": 100,
+      "throttle_delay_ms": 0,
+      "enabled": true
+    },
+    {
+      "smsc_id": "SMSC_STC_01",
+      "smsc_name": "STC Primary SMSC",
+      "host": "smsc1.stc.com.sa",
+      "port": 2775,
+      "system_id": "PROTEI_BULK_02",
+      "password": "encrypted_password_2",
+      "system_type": "SMPP",
+      "interface_version": "3.4",
+      "addr_ton": 1,
+      "addr_npi": 1,
+      "bind_type": "transceiver",
+      "max_connections": 10,
+      "enquire_link_interval": 30,
+      "window_size": 100,
+      "throttle_delay_ms": 0,
+      "enabled": true
+    },
+    {
+      "smsc_id": "SMSC_STC_02",
+      "smsc_name": "STC Backup SMSC",
+      "host": "smsc2.stc.com.sa",
+      "port": 2775,
+      "system_id": "PROTEI_BULK_02",
+      "password": "encrypted_password_2",
+      "system_type": "SMPP",
+      "interface_version": "3.4",
+      "addr_ton": 1,
+      "addr_npi": 1,
+      "bind_type": "transceiver",
+      "max_connections": 10,
+      "enquire_link_interval": 30,
+      "window_size": 100,
+      "throttle_delay_ms": 0,
+      "enabled": true
+    }
+  ],
+  "traffic_management": {
+    "enable_throttling": true,
+    "enable_load_balancing": true,
+    "enable_black_list": true,
+    "enable_white_list": true,
+    "enable_dnd_filtering": true,
+    "enable_duplicate_detection": true,
+    "duplicate_time_window_minutes": 60
+  },
+  "prioritization": {
+    "enable_priority_routing": true,
+    "priority_levels": {
+      "critical": {
+        "weight": 100,
+        "max_tps": 5000
+      },
+      "high": {
+        "weight": 75,
+        "max_tps": 3000
+      },
+      "normal": {
+        "weight": 50,
+        "max_tps": 2000
+      },
+      "low": {
+        "weight": 25,
+        "max_tps": 1000
+      }
+    }
+  }
+}

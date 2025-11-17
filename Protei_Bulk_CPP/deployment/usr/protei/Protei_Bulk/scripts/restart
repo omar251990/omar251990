@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# Protei_Bulk Restart Script
+#
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "Restarting Protei_Bulk..."
+echo
+
+"${SCRIPT_DIR}/stop"
+sleep 2
+"${SCRIPT_DIR}/start"
