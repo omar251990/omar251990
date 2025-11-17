@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: protei_postgres_cpp
+    environment:
+      POSTGRES_DB: protei_bulk
+      POSTGRES_USER: protei
+      POSTGRES_PASSWORD: elephant
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../Protei_Bulk/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ../../Protei_Bulk/database/seed_data.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U protei"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - protei_network_cpp
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: protei_redis_cpp
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - protei_network_cpp
+    restart: unless-stopped
+
+  # Protei_Bulk C++ Application
+  protei_bulk_cpp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: protei_bulk_cpp_app
+    environment:
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: protei_bulk
+      DB_USER: protei
+      DB_PASSWORD: elephant
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # Application
+      APP_ENV: production
+      LOG_LEVEL: info
+    volumes:
+      - app_logs:/opt/protei_bulk/logs
+      - app_cdr:/opt/protei_bulk/cdr
+      - app_tmp:/opt/protei_bulk/tmp
+    ports:
+      - "8081:8080"   # HTTP API (different from Python version)
+      - "2776:2775"   # SMPP (different from Python version)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - protei_network_cpp
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: protei_nginx_cpp
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../../Protei_Bulk/web/build:/usr/share/nginx/html:ro
+    ports:
+      - "81:80"      # Different from Python version
+      - "444:443"    # Different from Python version
+    depends_on:
+      - protei_bulk_cpp
+    networks:
+      - protei_network_cpp
+    restart: unless-stopped
+
+networks:
+  protei_network_cpp:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local
+  app_cdr:
+    driver: local
+  app_tmp:
+    driver: local
