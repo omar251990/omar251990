@@ -19,7 +19,7 @@ hiredis==2.3.2
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-python-ldap==3.4.4
+python-ldap==3.4.5
 pyotp==2.9.0
 qrcode==7.4.2
 
