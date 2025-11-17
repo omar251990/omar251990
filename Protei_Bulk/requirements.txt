@@ -57,7 +57,7 @@ psutil==5.9.8
 # Reporting & Visualization
 reportlab==4.0.9
 matplotlib==3.8.2
-pillow==10.2.0
+pillow==10.3.0
 
 # Validation
 phonenumbers==8.13.27
